@@ -1,0 +1,10 @@
+node_modules/
+__pycache__/
+*.pyc
+.env
+.venv/
+env/
+venv/
+proxdeep.tar.gz
+aws-key.pem
+.DS_Store

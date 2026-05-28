@@ -1,0 +1,70 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: sovereign_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: sovereignpass
+      POSTGRES_DB: sovereign_ai_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./server/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sovereign_ai_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sovereign_network
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: sovereign_server
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - JWT_SECRET=super_secret_jwt_key_sovereign_nodes_2026
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DB_USER=postgres
+      - DB_PASSWORD=sovereignpass
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=sovereign_ai_db
+      - CLIENT_URL=http://localhost:5173
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - sovereign_network
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: sovereign_client
+    restart: always
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:5000/api
+    volumes:
+      - ./client:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      - server
+    networks:
+      - sovereign_network
+
+volumes:
+  postgres_data:
+
+networks:
+  sovereign_network:
+    driver: bridge
