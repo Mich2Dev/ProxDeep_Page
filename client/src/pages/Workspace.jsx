@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Server, Cpu, Database, Shield, Send, Key, Eye, EyeOff, Terminal, Activity, RefreshCw, Command, PlayCircle, Zap, Code } from 'lucide-react';
 
 const Workspace = () => {
-  const { fetchWithAuth, API_URL, user } = useAuth();
+  const { fetchWithAuth, API_URL } = useAuth();
   const [smls, setSmls] = useState([]);
   const [proposal, setProposal] = useState(null);
   const [selectedSml, setSelectedSml] = useState(null);
@@ -16,7 +16,7 @@ const Workspace = () => {
 
   // API Key State
   const [showKey, setShowKey] = useState(false);
-  const [apiKey, setApiKey] = useState('sk_prox_live_9f8d1c92a5b6e4d7');
+  const [apiKey] = useState('sk_prox_live_9f8d1c92a5b6e4d7');
 
   // Chat playground state
   const [messages, setMessages] = useState([

@@ -126,7 +126,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (email, _password) => {
     const demoUser = buildDemoUser(email);
     localStorage.setItem('proxdeep_demo_role', 'loggedin');
     localStorage.removeItem('sovereign_token');
@@ -135,7 +135,7 @@ export const AuthProvider = ({ children }) => {
     return demoUser;
   };
 
-  const register = async (email, password, role, companyName) => {
+  const register = async (email, _password, role, companyName) => {
     const demoUser = buildDemoUser(email, companyName);
     if (role) demoUser.role = role;
     localStorage.setItem('proxdeep_demo_role', 'loggedin');

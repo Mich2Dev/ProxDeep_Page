@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Check, X, Cpu, AlertCircle, Users, ShieldCheck, Server, Database, TrendingUp, Cloud, Zap } from 'lucide-react';
+import { ArrowLeft, Check, Cpu, AlertCircle, Users, ShieldCheck, Server, Database, TrendingUp, Cloud, Zap } from 'lucide-react';
 import { buildCloudRoiComparison } from '../utils/cloudRoi';
 
 const ClientProposal = () => {

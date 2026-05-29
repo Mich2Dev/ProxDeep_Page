@@ -69,7 +69,6 @@ const ClientDashboard = () => {
   const latestNeed = activeNeed;
   const needProposals = latestNeed ? proposals.filter((p) => p.client_need_id === latestNeed.id) : [];
   const proposal = needProposals.find((p) => p.status !== 'rejected');
-  const hasRejected = needProposals.some((p) => p.status === 'rejected');
 
   const parseUseCases = (uc) => {
     try {

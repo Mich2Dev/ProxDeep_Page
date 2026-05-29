@@ -1,313 +1,360 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  ChevronRight, ChevronLeft, Check, AlertCircle, Send,
-  Edit2, Shield, Zap, Database, Globe, Lock, FileText,
-  Code, Activity,
+  ChevronRight, Check, AlertCircle, Send,
+  Edit2, Shield, Lock,
 } from 'lucide-react';
 
 // ─── Static Data ─────────────────────────────────────────────────────────────
 
-const PROCESS_CATEGORIES = [
-  { id: 'legal',    label: 'Legal / Contratos',       description: 'Revisión, extracción y redacción de documentos legales.' },
-  { id: 'finance',  label: 'Finanzas / Auditoría',    description: 'Análisis de datos financieros, detección de anomalías contables.' },
-  { id: 'hr',       label: 'Recursos Humanos',        description: 'Onboarding, políticas internas, cumplimiento laboral.' },
-  { id: 'it',       label: 'Operaciones de TI',       description: 'Soporte técnico, análisis de logs, triaje de incidencias.' },
-  { id: 'customer', label: 'Atención al Cliente',     description: 'Chatbots internos, triaje de tickets, respuestas automatizadas.' },
-  { id: 'health',   label: 'Salud / Clínica',         description: 'Historias clínicas, clasificación médica, entornos HIPAA.' },
-  { id: 'other',    label: 'Otro',                    description: 'Caso de uso no listado.' },
-];
-
-const CONCURRENCY_OPTIONS = [
-  { id: 'pilot',      label: 'Piloto',          sublabel: 'Menos de 50 usuarios simultáneos',              value: 25  },
-  { id: 'department', label: 'Departamental',   sublabel: '50 – 300 usuarios simultáneos',                 value: 150 },
-  { id: 'intensive',  label: 'Uso intensivo',   sublabel: 'Más de 300 usuarios o procesos automatizados',  value: 500 },
-];
-
-const GOVERNANCE_OPTIONS = [
+const INFRA_OPTIONS = [
   {
-    id: 'standard',
-    label: 'Privado estándar',
-    description: 'Encriptado en tránsito y reposo. Adecuado para operaciones internas regulares.',
+    id: 'from_scratch',
+    label: 'Automatización Inteligente (Desde Cero)',
+    description: 'No contamos con sistemas propietarios optimizados; buscamos desarrollar flujos de trabajo e infraestructura digital desde su base.',
+    summaryBadge: 'Infraestructura: Desde cero',
+    accent: 'cyan',
+  },
+  {
+    id: 'existing',
+    label: 'Optimización de Procesos (Infraestructura Existente)',
+    description: 'Contamos con software operativo (CRM, ERP o bases de datos) y buscamos integrar capas de IA o automatizar procesos sobre ellos.',
+    summaryBadge: 'Infraestructura: Sistemas existentes',
+    accent: 'violet',
+  },
+];
+
+const SCOPE_OPTIONS = [
+  {
+    id: 'internal_ops',
+    label: 'Operaciones y Procesos Internos',
+    description: 'Reducir tareas repetitivas, procesamiento de documentos o flujos manuales.',
+    summaryBadge: 'Foco: Operaciones',
+  },
+  {
+    id: 'customer_channels',
+    label: 'Atención y Canales de Cara al Cliente',
+    description: 'Automatizar soporte técnico, flujos conversacionales o gestión de requerimientos.',
+    summaryBadge: 'Foco: Clientes',
+  },
+  {
+    id: 'data_analytics',
+    label: 'Análisis de Datos y Reportes',
+    description: 'Centralizar información dispersa para analítica predictiva o toma de decisiones.',
+    summaryBadge: 'Foco: Analítica',
+  },
+];
+
+const STACK_OPTIONS = [
+  {
+    id: 'saas_apis',
+    label: 'SaaS y Nube Comercial',
+    description: 'Utilizamos plataformas modernas con APIs abiertas como Salesforce, HubSpot o SAP.',
+    summaryBadge: 'Stack: SaaS/APIs',
+  },
+  {
+    id: 'on_premise',
+    label: 'Sistemas Legacy o Locales (On-Premise)',
+    description: 'Operamos con bases de datos internas o software cerrado de difícil acceso.',
+    summaryBadge: 'Stack: On-Premise',
+  },
+  {
+    id: 'fragmented',
+    label: 'Ecosistema Fragmentado',
+    description: 'Los datos están dispersos en múltiples herramientas independientes que no se comunican.',
+    summaryBadge: 'Stack: Fragmentado',
+  },
+];
+
+const SCALE_OPTIONS = [
+  {
+    id: 'focalizada',
+    label: 'Flujo Focalizado / Equipos Iniciales',
+    description: 'Procesos de un departamento específico, volúmenes moderados de datos y despliegue directo.',
+    summaryBadge: 'Escala: Focalizada',
+    concurrentUsers: 50,
+    nodeRange: [800, 1500],
+  },
+  {
+    id: 'enterprise',
+    label: 'Despliegue Corporativo / Contenedores',
+    description: 'Alta demanda simultánea, flujos transversales y preferencia por ambientes estandarizados en Docker/Kubernetes.',
+    summaryBadge: 'Escala: Enterprise',
+    concurrentUsers: 250,
+    nodeRange: [1800, 3500],
+  },
+];
+
+const SECURITY_OPTIONS = [
+  {
+    id: 'standard_flex',
+    label: 'Estándar / Flexibilidad Alta',
+    description: 'Podemos operar con modelos comerciales en la nube bajo políticas de privacidad estándar.',
+    summaryBadge: 'Seguridad: Nube Estándar',
     exceptional: false,
   },
   {
-    id: 'vpc',
-    label: 'Canal dedicado (VPC)',
-    description: 'Red aislada exclusiva para la organización. Recomendado para cumplimiento regulatorio estricto.',
-    exceptional: false,
-  },
-  {
-    id: 'airgapped',
-    label: 'Aislamiento total (Air-Gapped)',
-    description: 'Sin conexión a internet. Condición excepcional para entornos con requisitos de seguridad extrema: defensa, salud crítica, regulación estatal.',
+    id: 'strict_private',
+    label: 'Crítico / Restricción Estricta (LGPD/Enterprise)',
+    description: 'Manejamos datos altamente sensibles. Requerimos modelos privados, encriptación avanzada o aislamiento local.',
+    summaryBadge: 'Seguridad: Privada/LGPD',
     exceptional: true,
   },
 ];
 
-const DATA_SOURCES = [
-  { id: 'docs',      label: 'Documentos internos',      sublabel: 'PDF, Word, presentaciones',       Icon: FileText  },
-  { id: 'databases', label: 'Bases de datos',           sublabel: 'SQL, estructurados',              Icon: Database  },
-  { id: 'apis',      label: 'APIs externas',            sublabel: 'Servicios web de terceros',       Icon: Globe     },
-  { id: 'code',      label: 'Código fuente',            sublabel: 'Repositorios, scripts',           Icon: Code      },
-  { id: 'streams',   label: 'Datos en tiempo real',     sublabel: 'Streams, eventos continuos',      Icon: Activity  },
-];
-
-// Maps process category to SML IDs from mockData
-const SML_CATEGORY_MAP = {
-  legal:    [1, 2],
-  finance:  [4, 7],
-  hr:       [8],
-  it:       [5],
-  customer: [5],
-  health:   [3],
-  other:    [6],
+// Maps branch choice to SML IDs from mockData
+const BRANCH_SML_MAP = {
+  internal_ops:      [5],
+  customer_channels: [5],
+  data_analytics:    [4, 7],
+  saas_apis:         [5],
+  on_premise:        [5],
+  fragmented:        [6],
 };
 
 // ─── Decision Logic ───────────────────────────────────────────────────────────
 
+function getBranchChoice(answers) {
+  return answers.infraMode === 'from_scratch' ? answers.scopeFocus : answers.stackComplexity;
+}
+
+function getConcurrentUsers(answers) {
+  const scale = SCALE_OPTIONS.find(o => o.id === answers.scaleEnvironment);
+  return scale?.concurrentUsers ?? 50;
+}
+
 function detectConflicts(answers) {
   const conflicts = [];
 
-  if (answers.governanceLevel === 'airgapped' && answers.dataSources.includes('apis')) {
+  if (answers.governanceLevel === 'strict_private' && answers.stackComplexity === 'saas_apis') {
     conflicts.push({
       id: 'A', severity: 'high',
-      title: 'Aislamiento total (Air-Gapped) + Integraciones con APIs externas',
-      message: 'El aislamiento total impide conectividad externa. No es posible integrar APIs de terceros en tiempo real bajo esta configuración.',
-      suggestion: 'Considere canal dedicado (VPC) si requiere conectividad.',
+      title: 'Restricción estricta de privacidad + Stack SaaS con APIs comerciales',
+      message: 'Un despliegue privado o local con datos críticos limita el uso directo de APIs de terceros en la nube pública.',
+      suggestion: 'Considere conectores controlados en VPC o evalúe flexibilidad estándar si la integración SaaS es indispensable.',
     });
   }
 
-  if (
-    answers.realtimeNeeded &&
-    (answers.concurrencyLevel === 'intensive' ||
-      (answers.concurrencyLevel === 'pilot' && answers.userTypes.includes('automated')))
-  ) {
+  if (answers.governanceLevel === 'strict_private' && answers.stackComplexity === 'fragmented') {
     conflicts.push({
       id: 'B', severity: 'medium',
-      title: 'Volumen intensivo + Latencia crítica + Presupuesto piloto',
-      message: 'Garantizar respuesta en tiempo real con alta concurrencia implica recursos de cómputo significativos. Esta combinación excede el alcance de un despliegue piloto estándar.',
-      suggestion: 'Reduzca el volumen estimado o flexibilice la latencia para una arquitectura de menor escala.',
+      title: 'Datos fragmentados + Requisitos de seguridad crítica',
+      message: 'Unificar datos dispersos bajo gobernanza estricta requiere fase de integración y clasificación previa.',
+      suggestion: 'Priorice un inventario de fuentes y un plan de consolidación antes del despliegue del nodo de IA.',
     });
   }
 
-  if (
-    answers.governanceLevel === 'airgapped' &&
-    answers.userTypes.length > 0 &&
-    !answers.userTypes.includes('devs')
-  ) {
+  if (answers.infraMode === 'from_scratch' && answers.scopeFocus === 'customer_channels' && answers.governanceLevel === 'strict_private') {
     conflicts.push({
       id: 'C', severity: 'medium',
-      title: 'Seguridad máxima requerida + Baja capacidad operativa interna',
-      message: 'Un despliegue Air-Gapped requiere administración técnica local continua.',
-      suggestion: 'Si el equipo interno no puede sostenerlo, se recomienda un modelo de canal dedicado gestionado externamente.',
+      title: 'Canales de cliente + Seguridad crítica',
+      message: 'Automatizar atención al cliente con restricciones estrictas implica arquitectura dedicada y latencia controlada.',
+      suggestion: 'Valide volumen de interacciones y políticas de retención antes de dimensionar cómputo.',
     });
   }
 
   return conflicts;
 }
 
-function calculateConfidence(answers, conflicts, currentStep = 6) {
+function calculateConfidence(answers, conflicts, maxVisibleStep = 4) {
   let completed = 0;
-  if (answers.processCategory)        completed++;
-  if (answers.concurrencyLevel)       completed++;
-  if (answers.governanceLevel)        completed++;
-  if (answers.dataSources.length > 0) completed++;
-  if (currentStep >= 5 || answers.realtimeNeeded || answers.agentsNeeded) completed++;
-
-  const openAssumptions =
-    (answers.processDescription.trim().length < 5 ? 1 : 0) +
-    (answers.userTypes.length === 0 ? 1 : 0);
-
-  const isHighSensitivity =
-    ['airgapped', 'vpc'].includes(answers.governanceLevel) ||
-    ['health', 'legal', 'finance'].includes(answers.processCategory);
+  if (answers.infraMode)          completed++;
+  if (getBranchChoice(answers)) completed++;
+  if (answers.scaleEnvironment) completed++;
+  if (answers.governanceLevel)  completed++;
 
   const hasHigh   = conflicts.some(c => c.severity === 'high');
   const hasMedium = conflicts.some(c => c.severity === 'medium');
 
   if (completed < 3 || hasHigh) return 'low';
-  if (
-    completed < 5 ||
-    hasMedium ||
-    openAssumptions > 1 ||
-    (isHighSensitivity && (openAssumptions > 0 || completed < 5))
-  ) return 'medium';
+  if (completed < 4 || hasMedium || maxVisibleStep < 4) return 'medium';
   return 'high';
 }
 
 function buildInferredProfile(answers) {
-  if (!answers.processCategory && !answers.concurrencyLevel && !answers.governanceLevel) {
+  if (
+    !answers.infraMode &&
+    !getBranchChoice(answers) &&
+    !answers.scaleEnvironment &&
+    !answers.governanceLevel
+  ) {
     return null;
   }
 
   const segments = [];
-  const category = PROCESS_CATEGORIES.find(c => c.id === answers.processCategory);
 
-  if (category) {
-    const confidential = ['legal', 'health', 'finance'].includes(answers.processCategory);
-    segments.push(
-      confidential
-        ? `procesamiento documental confidencial en ${category.label.toLowerCase()}`
-        : `caso de uso en ${category.label.toLowerCase()}`,
-    );
+  if (answers.infraMode === 'from_scratch') {
+    segments.push('implementación de IA desde cero');
+  } else if (answers.infraMode === 'existing') {
+    segments.push('integración de IA sobre infraestructura existente');
   }
 
-  if (answers.concurrencyLevel === 'pilot')       segments.push('volumen bajo (piloto)');
-  else if (answers.concurrencyLevel === 'department') segments.push('volumen medio');
-  else if (answers.concurrencyLevel === 'intensive')  segments.push('volumen alto o automatizado');
-
-  if (answers.governanceLevel === 'airgapped' || answers.governanceLevel === 'vpc') {
-    segments.push('necesidad de cumplimiento normativo');
-  } else if (answers.governanceLevel === 'standard') {
-    segments.push('operaciones internas regulares');
+  if (answers.infraMode === 'from_scratch') {
+    const scope = SCOPE_OPTIONS.find(o => o.id === answers.scopeFocus);
+    if (scope) segments.push(scope.label.toLowerCase());
+  } else if (answers.infraMode === 'existing') {
+    const stack = STACK_OPTIONS.find(o => o.id === answers.stackComplexity);
+    if (stack) segments.push(stack.label.toLowerCase());
   }
 
-  if (answers.userTypes.includes('external')) segments.push('acceso de clientes externos');
-  if (answers.dataSources.includes('docs'))   segments.push('fuentes documentales');
+  if (answers.scaleEnvironment === 'focalizada') {
+    segments.push('escala focalizada por departamento');
+  } else if (answers.scaleEnvironment === 'enterprise') {
+    segments.push('despliegue corporativo con contenedores');
+  }
 
-  return `Se detecta un caso de ${segments.join(' con ')}.`;
+  if (answers.governanceLevel === 'strict_private') {
+    segments.push('requisitos normativos y de privacidad estrictos (LGPD/enterprise)');
+  } else if (answers.governanceLevel === 'standard_flex') {
+    segments.push('operación con flexibilidad en nube estándar');
+  }
+
+  return `Se detecta un caso corporativo de ${segments.join(' con ')}.`;
 }
 
 function buildChangeReasons(answers) {
   const reasons = [];
 
-  if (answers.governanceLevel === 'airgapped') {
-    reasons.push('Al seleccionar "Aislamiento total", el entorno recomendado pasó a despliegue local sin conectividad externa.');
-  } else if (answers.governanceLevel === 'vpc') {
-    reasons.push('Al seleccionar cumplimiento regulatorio estricto, el entorno recomendado pasó de nube compartida a canal dedicado (VPC).');
-  } else if (answers.governanceLevel === 'standard') {
-    reasons.push('Con control estándar, el entorno recomendado es un despliegue privado encriptado para operaciones regulares.');
+  if (answers.governanceLevel === 'strict_private') {
+    reasons.push('Al seleccionar restricción estricta, el entorno recomendado pasó a despliegue privado o canal dedicado enterprise.');
+  } else if (answers.governanceLevel === 'standard_flex') {
+    reasons.push('Con flexibilidad estándar, el entorno recomendado permite operación en nube comercial con políticas de privacidad regulares.');
   }
 
-  if (answers.concurrencyLevel === 'intensive' && answers.realtimeNeeded) {
-    reasons.push('Al marcar "latencia crítica" con volumen alto, el sistema aumentó la capacidad de cómputo estimada.');
-  } else if (answers.concurrencyLevel === 'department') {
-    reasons.push('El volumen departamental activa recursos dedicados con disponibilidad básica.');
-  } else if (answers.concurrencyLevel === 'pilot') {
-    reasons.push('El volumen piloto permite una configuración de recursos reducida.');
+  if (answers.infraMode === 'from_scratch') {
+    reasons.push('La creación desde cero activa diseño de flujos, orquestación y capa de infraestructura digital como base del proyecto.');
+  } else if (answers.infraMode === 'existing') {
+    reasons.push('La infraestructura existente orienta la recomendación hacia integración, conectores y automatización sobre sistemas operativos.');
   }
 
-  if (answers.dataSources.includes('apis') && answers.governanceLevel !== 'airgapped') {
-    reasons.push('Las APIs externas requieren conectores de red controlados dentro del entorno privado.');
+  if (answers.scaleEnvironment === 'enterprise') {
+    reasons.push('El despliegue corporativo activa ambientes estandarizados en contenedores y mayor capacidad simultánea.');
+  } else if (answers.scaleEnvironment === 'focalizada') {
+    reasons.push('La escala focalizada permite un despliegue directo acotado a equipos o departamentos iniciales.');
   }
 
-  if (answers.agentsNeeded) {
-    reasons.push('La ejecución autónoma activa orquestación de agentes y procesamiento por lotes.');
+  if (answers.stackComplexity === 'saas_apis') {
+    reasons.push('El stack SaaS/APIs requiere conectores de integración y gobernanza de acceso a servicios externos.');
+  } else if (answers.stackComplexity === 'on_premise') {
+    reasons.push('Los sistemas on-premise/legacy implican conectividad controlada y posible middleware de acceso a datos.');
+  } else if (answers.stackComplexity === 'fragmented') {
+    reasons.push('Un ecosistema fragmentado requiere capa de consolidación e indexación antes de la inferencia de IA.');
+  }
+
+  if (answers.scopeFocus === 'data_analytics') {
+    reasons.push('El foco analítico prioriza pipelines de datos, reportes y modelos orientados a decisión.');
+  } else if (answers.scopeFocus === 'customer_channels') {
+    reasons.push('Los canales de cliente activan automatización conversacional y triaje de requerimientos.');
   }
 
   return reasons;
 }
 
 function buildSimplificationHint(answers) {
-  if (answers.governanceLevel === 'airgapped') {
-    return 'Cambiar a "Canal dedicado (VPC)" simplificaría la operación y reduciría el costo inicial.';
+  if (answers.governanceLevel === 'strict_private' && answers.stackComplexity === 'saas_apis') {
+    return 'Evaluar flexibilidad estándar o conectores en VPC reduciría la fricción con integraciones SaaS.';
   }
-  if (answers.concurrencyLevel === 'intensive' || answers.realtimeNeeded) {
-    return 'Reducir el volumen estimado o flexibilizar la latencia permitiría una arquitectura de menor escala.';
+  if (answers.stackComplexity === 'fragmented') {
+    return 'Consolidar fuentes críticas antes del despliegue simplificaría la arquitectura y reduciría costo inicial.';
   }
-  if (answers.concurrencyLevel === 'department') {
-    return 'Reducir el volumen estimado a escala piloto permitiría una arquitectura de menor escala.';
+  if (answers.infraMode === 'from_scratch') {
+    return 'Acotar el primer caso de uso operativo aceleraría el time-to-value del despliegue inicial.';
   }
   return null;
 }
 
-function buildAssumptionsAndGaps(answers, conflicts, currentStep = 6) {
+function buildAssumptionsAndGaps(answers, conflicts, showOutput = false) {
   const assumptions = [];
   const missingForProposal = [];
 
-  if (answers.processDescription.trim().length < 5) {
-    assumptions.push('Se asumió el caso de uso a partir de la categoría seleccionada, sin contexto adicional detallado.');
-    missingForProposal.push('Descripción concreta del proceso y volumen documental o transaccional.');
+  const users = getConcurrentUsers(answers);
+  assumptions.push(`Se proyectan ~${users} usuarios concurrentes según la escala seleccionada (${answers.scaleEnvironment || 'pendiente'}).`);
+  assumptions.push('Se estiman 20 consultas diarias por usuario y 22 días hábiles al mes para la proyección de costos.');
+
+  if (!answers.scaleEnvironment) {
+    missingForProposal.push('Dimensión operativa y entorno técnico del proyecto.');
   }
 
-  if (answers.userTypes.length === 0) {
-    assumptions.push('No se especificó el perfil de usuarios; se estima uso interno departamental.');
-    missingForProposal.push('Perfil de usuarios y patrones de acceso (internos, externos, automatizados).');
+  if (answers.infraMode === 'existing' && answers.stackComplexity === 'fragmented') {
+    missingForProposal.push('Inventario de sistemas fuente y mapa de integración entre herramientas.');
   }
 
-  if (!answers.realtimeNeeded && !answers.agentsNeeded && currentStep >= 6) {
-    assumptions.push('No se definieron requisitos operativos de latencia ni automatización (respuesta explícita).');
+  if (answers.governanceLevel === 'strict_private') {
+    missingForProposal.push('Validación legal/compliance sobre retención, residencia y clasificación de datos.');
   }
-
-  assumptions.push('Se estiman 20 consultas diarias por usuario y 22 días hábiles al mes para la simulación financiera.');
 
   if (conflicts.length > 0) {
-    missingForProposal.push('Resolución de conflictos entre requisitos de seguridad, conectividad y escala.');
+    missingForProposal.push('Resolución de conflictos entre stack, integraciones y requisitos de seguridad.');
   }
 
-  if (!answers.concurrencyLevel) {
-    missingForProposal.push('Volumen de uso simultáneo estimado.');
+  if (showOutput && !getBranchChoice(answers)) {
+    missingForProposal.push('Definición del alcance operativo o complejidad del stack.');
   }
 
   return { assumptions, missingForProposal };
 }
 
-function buildRecommendation(answers, conflicts, confidence) {
-  let env             = null;
-  let envLabel        = null;
-  let scale           = null;
-  const justification   = [];
-  const businessImpact  = [];
-  const changeReasons   = buildChangeReasons(answers);
+function buildRecommendation(answers) {
+  let envLabel = null;
+  let scale    = null;
+  const justification  = [];
+  const businessImpact = [];
+  const changeReasons  = buildChangeReasons(answers);
   const simplificationHint = buildSimplificationHint(answers);
   const inferredProfile = buildInferredProfile(answers);
+  const branchId = getBranchChoice(answers);
 
-  // Environment
-  if (answers.governanceLevel === 'airgapped') {
-    env      = 'airgapped';
-    envLabel = 'Despliegue local aislado (Air-Gapped)';
-    justification.push('Se requiere desconexión física completa de redes externas.');
-  } else if (answers.governanceLevel === 'vpc') {
-    env      = 'vpc';
-    envLabel = 'Canal dedicado en nube privada (VPC)';
-    justification.push('Se requiere una red exclusiva con cumplimiento regulatorio estricto.');
-  } else if (answers.governanceLevel === 'standard') {
-    env      = 'standard';
-    envLabel = 'Entorno privado encriptado';
-    justification.push('Cumplimiento estándar con encriptación en tránsito y reposo.');
+  const scaleOpt = SCALE_OPTIONS.find(o => o.id === answers.scaleEnvironment);
+
+  if (answers.governanceLevel === 'strict_private') {
+    envLabel = 'Entorno privado enterprise (VPC / aislamiento LGPD)';
+    justification.push('Los requisitos críticos de privacidad exigen modelos privados, encriptación avanzada o aislamiento local.');
+  } else if (answers.governanceLevel === 'standard_flex') {
+    envLabel = 'Nube comercial con políticas estándar';
+    justification.push('La flexibilidad alta permite operar con modelos comerciales bajo políticas de privacidad estándar.');
   }
 
-  // Scale
-  if (answers.concurrencyLevel === 'pilot') {
-    scale = 'Escala piloto (< 50 usuarios simultáneos)';
-    justification.push('El volumen piloto permite una configuración de recursos reducida.');
-  } else if (answers.concurrencyLevel === 'department') {
-    scale = 'Escala departamental (50–300 usuarios simultáneos)';
-    justification.push('El volumen departamental requiere recursos dedicados con alta disponibilidad básica.');
-  } else if (answers.concurrencyLevel === 'intensive') {
-    scale = 'Escala intensiva (> 300 usuarios o procesos automatizados)';
-    justification.push('El volumen intensivo requiere capacidad de cómputo acelerada y arquitectura distribuida.');
+  if (scaleOpt) {
+    scale = scaleOpt.label;
+    justification.push(scaleOpt.description);
+  } else if (answers.infraMode === 'from_scratch') {
+    scale = 'Implementación greenfield — diseño de flujos e infraestructura digital';
+  } else if (answers.infraMode === 'existing') {
+    scale = 'Integración sobre stack operativo existente';
   }
 
-  // Data sources
-  if (answers.dataSources.includes('docs'))
-    justification.push('El procesamiento de documentos no estructurados requiere un módulo de recuperación de contexto (RAG).');
-  if (answers.dataSources.includes('databases'))
-    justification.push('La integración con bases de datos estructuradas requiere soporte de indexación y conexión SQL local.');
-  if (answers.dataSources.includes('apis') && answers.governanceLevel !== 'airgapped')
-    justification.push('La integración con APIs externas requiere conectores de red controlados.');
-  if (answers.realtimeNeeded)
-    justification.push('La latencia crítica en tiempo real requiere prioridad de procesamiento dedicada.');
-  if (answers.agentsNeeded)
-    justification.push('La ejecución autónoma de agentes requiere orquestación de flujos multi-paso.');
+  if (answers.infraMode === 'from_scratch') {
+    justification.push('Al partir desde cero, la arquitectura incluye diseño de procesos, orquestación y base tecnológica.');
+  } else if (answers.infraMode === 'existing') {
+    justification.push('La presencia de CRM/ERP/bases de datos orienta conectores, APIs y capas de automatización sobre sistemas vigentes.');
+  }
 
-  // Business impact
-  if (answers.governanceLevel === 'airgapped' || answers.governanceLevel === 'vpc')
-    businessImpact.push({ label: 'Riesgo evitado', value: 'Reduce exposición legal y operativa por procesamiento de datos fuera de la organización.' });
-  if (answers.governanceLevel === 'airgapped' || answers.governanceLevel === 'vpc')
-    businessImpact.push({ label: 'Soberanía de datos', value: 'Los datos no salen de la infraestructura controlada por la organización.' });
-  if (answers.governanceLevel === 'vpc' || answers.processCategory === 'finance' || answers.processCategory === 'health')
-    businessImpact.push({ label: 'Compliance habilitado', value: 'Arquitectura compatible con requisitos regulatorios sectoriales estrictos.' });
-  if (answers.processCategory === 'finance')
-    businessImpact.push({ label: 'Compliance financiero', value: 'Procesamiento bajo normas IFRS/NIF sin exposición externa.' });
-  if (answers.processCategory === 'health')
-    businessImpact.push({ label: 'Compliance de salud', value: 'Compatible con HIPAA y normativas locales de datos clínicos.' });
-  if (answers.processCategory === 'legal')
-    businessImpact.push({ label: 'Protección de propiedad intelectual', value: 'Los documentos confidenciales nunca se procesan en infraestructura ajena.' });
-  businessImpact.push({ label: 'Predictibilidad de costos', value: 'Tarifa fija de operación, independiente del volumen de consultas.' });
-  businessImpact.push({ label: 'Autonomía operativa', value: 'Sin dependencia de disponibilidad ni cambios de política de APIs externas.' });
+  if (answers.scopeFocus === 'internal_ops') {
+    justification.push('El foco operativo interno prioriza automatización documental, RAG y reducción de tareas repetitivas.');
+  }
+  if (answers.scopeFocus === 'customer_channels') {
+    justification.push('Los canales de cliente requieren triaje, respuesta asistida y flujos conversacionales gobernados.');
+  }
+  if (answers.scopeFocus === 'data_analytics') {
+    justification.push('La analítica de datos requiere consolidación, indexación y pipelines orientados a reportes y decisión.');
+  }
+  if (answers.stackComplexity === 'saas_apis') {
+    justification.push('Las integraciones SaaS/APIs requieren conectores seguros hacia Salesforce, HubSpot, SAP u homólogos.');
+  }
+  if (answers.stackComplexity === 'on_premise') {
+    justification.push('Los sistemas legacy/on-premise implican acceso controlado a bases internas y posible middleware.');
+  }
+  if (answers.stackComplexity === 'fragmented') {
+    justification.push('Un ecosistema fragmentado requiere capa de unificación e indexación multi-fuente.');
+  }
+
+  if (answers.governanceLevel === 'strict_private') {
+    businessImpact.push({ label: 'Riesgo evitado', value: 'Reduce exposición legal por procesamiento de datos sensibles fuera de políticas enterprise.' });
+    businessImpact.push({ label: 'Soberanía de datos', value: 'Los datos críticos permanecen bajo control organizacional y normativo.' });
+  }
+  businessImpact.push({ label: 'Predictibilidad de costos', value: 'Tarifa de operación predecible frente a consumo variable de APIs públicas.' });
+  businessImpact.push({ label: 'Autonomía operativa', value: 'Menor dependencia de cambios de política en servicios externos de IA.' });
 
   const architecture =
     envLabel && scale ? `${envLabel} — ${scale}`
@@ -317,32 +364,24 @@ function buildRecommendation(answers, conflicts, confidence) {
 
   return {
     architecture,
-    env,
-    scale,
     inferredProfile,
     justification,
     changeReasons,
     simplificationHint,
     businessImpact,
-    suggestedModelIds: SML_CATEGORY_MAP[answers.processCategory] || SML_CATEGORY_MAP.other,
+    suggestedModelIds: BRANCH_SML_MAP[branchId] || [6],
   };
 }
 
 function buildFinancialScenario(answers) {
-  const concurrencyMap  = { pilot: 25, department: 150, intensive: 500 };
-  const users           = concurrencyMap[answers.concurrencyLevel] || 25;
+  const scaleOpt        = SCALE_OPTIONS.find(o => o.id === answers.scaleEnvironment);
+  const users           = scaleOpt?.concurrentUsers ?? 50;
   const queriesPerUser  = 20;
   const workingDays     = 22;
   const dailyQueries    = users * queriesPerUser;
   const monthlyQueries  = dailyQueries * workingDays;
   const publicCostMonth = Math.round(monthlyQueries * 0.004);
-
-  const ranges = {
-    pilot:      [800,  1500],
-    department: [1800, 3500],
-    intensive:  [4000, 8000],
-  };
-  const [nodeMin, nodeMax] = ranges[answers.concurrencyLevel] || ranges.pilot;
+  const [nodeMin, nodeMax] = scaleOpt?.nodeRange ?? [800, 1500];
   const nodeMid = Math.round((nodeMin + nodeMax) / 2);
 
   let breakEvenMonths = null;
@@ -363,6 +402,45 @@ function buildFinancialScenario(answers) {
     nodeMax,
     nodeMid,
     breakEvenMonths,
+  };
+}
+
+function buildPayloadFromAnswers(answers, recommendation) {
+  const branchId = getBranchChoice(answers);
+  const infra = INFRA_OPTIONS.find(o => o.id === answers.infraMode);
+  const branchOpt = answers.infraMode === 'from_scratch'
+    ? SCOPE_OPTIONS.find(o => o.id === answers.scopeFocus)
+    : STACK_OPTIONS.find(o => o.id === answers.stackComplexity);
+  const scaleOpt = SCALE_OPTIONS.find(o => o.id === answers.scaleEnvironment);
+  const sec = SECURITY_OPTIONS.find(o => o.id === answers.governanceLevel);
+
+  const useCases = [
+    answers.infraMode,
+    branchId,
+    answers.scaleEnvironment,
+    answers.governanceLevel,
+  ].filter(Boolean);
+  if (answers.scopeFocus === 'customer_channels') useCases.push('external', 'customer');
+  if (answers.scopeFocus === 'internal_ops') useCases.push('docs', 'employees');
+  if (answers.scopeFocus === 'data_analytics') useCases.push('databases', 'analytics');
+  if (answers.stackComplexity === 'saas_apis') useCases.push('apis', 'external');
+  if (answers.stackComplexity === 'on_premise') useCases.push('databases', 'on_premise');
+  if (answers.stackComplexity === 'fragmented') useCases.push('docs', 'databases', 'apis');
+  if (answers.scaleEnvironment === 'enterprise') useCases.push('tool_orchestrator', 'kubernetes');
+  if (answers.scaleEnvironment === 'focalizada') useCases.push('pilot');
+
+  return {
+    problem_description: [
+      `[${answers.infraMode}/${branchId}/${answers.scaleEnvironment}]`,
+      infra?.summaryBadge,
+      branchOpt?.summaryBadge,
+      scaleOpt?.summaryBadge,
+      sec?.summaryBadge,
+    ].filter(Boolean).join(' '),
+    expected_users_concurrent: getConcurrentUsers(answers),
+    data_sensitivity: answers.governanceLevel === 'strict_private' ? 'high' : 'medium',
+    use_cases_priority: [...new Set(useCases)],
+    current_ia_pain_points: recommendation.justification.join(' '),
   };
 }
 
@@ -402,67 +480,116 @@ const OUTPUT_STATUS_CFG = {
 };
 
 const STEP_LABELS = {
-  1: 'Proceso',
-  2: 'Usuarios y volumen',
-  3: 'Gobernanza',
-  4: 'Fuentes de datos',
-  5: 'Operación',
+  1: 'Infraestructura base',
+  2: 'Enfoque / Stack',
+  3: 'Escala y entorno',
+  4: 'Gobernanza y seguridad',
 };
 
-const USER_TYPE_LABELS = {
-  devs:      'Desarrolladores internos',
-  employees: 'Empleados no técnicos',
-  external:  'Clientes externos',
-  automated: 'Procesos automatizados',
-};
+function isStepComplete(step, answers) {
+  if (step === 1) return !!answers.infraMode;
+  if (step === 2) return !!getBranchChoice(answers);
+  if (step === 3) return !!answers.scaleEnvironment;
+  if (step === 4) return !!answers.governanceLevel;
+  return false;
+}
+
+function resetAnswersAfterStep(answers, step) {
+  const next = { ...answers };
+  if (step < 2) {
+    next.scopeFocus = '';
+    next.stackComplexity = '';
+  }
+  if (step < 3) {
+    next.scaleEnvironment = '';
+  }
+  if (step < 4) {
+    next.governanceLevel = '';
+  }
+  return next;
+}
+
+function getStepAccordionMeta(stepNum, answers) {
+  if (stepNum === 1) {
+    return {
+      label: 'Infraestructura base',
+      heading: '¿Cuál es el estado de la infraestructura donde deseas implementar IA?',
+      description: 'Define si partes desde cero o integras IA sobre sistemas operativos existentes.',
+    };
+  }
+  if (stepNum === 2) {
+    if (answers.infraMode === 'from_scratch') {
+      return {
+        label: 'Enfoque operativo',
+        heading: '¿Cuál es el cuello de botella crítico que requiere automatización inmediata?',
+        description: 'Prioriza el foco operativo del primer despliegue.',
+      };
+    }
+    return {
+      label: 'Complejidad del stack',
+      heading: '¿Cómo interactúa el software actual de tu empresa con tus datos operativos?',
+      description: 'Identifica el patrón de integración predominante en tu organización.',
+    };
+  }
+  if (stepNum === 3) {
+    return {
+      label: 'Escala y entorno',
+      heading: '¿Cuál es la dimensión operativa y el entorno técnico del proyecto?',
+      description: 'Dimensiona volumen, alcance transversal y preferencia de despliegue.',
+    };
+  }
+  return {
+    label: 'Gobernanza y seguridad',
+    heading: '¿Cuáles son los requerimientos normativos y de privacidad para el manejo de tu información?',
+    description: 'Determina el nivel de restricción y cumplimiento requerido.',
+  };
+}
 
 function formatStepValue(step, answers) {
   if (step === 1) {
-    const cat = PROCESS_CATEGORIES.find(c => c.id === answers.processCategory);
-    return cat ? cat.label : '—';
+    const infra = INFRA_OPTIONS.find(o => o.id === answers.infraMode);
+    return infra?.summaryBadge ?? '—';
   }
   if (step === 2) {
-    const vol = CONCURRENCY_OPTIONS.find(o => o.id === answers.concurrencyLevel);
-    const users = answers.userTypes.map(id => USER_TYPE_LABELS[id]).join(', ');
-    return [users || null, vol?.label].filter(Boolean).join(' · ') || '—';
+    if (answers.infraMode === 'from_scratch') {
+      const scope = SCOPE_OPTIONS.find(o => o.id === answers.scopeFocus);
+      return scope?.summaryBadge ?? '—';
+    }
+    if (answers.infraMode === 'existing') {
+      const stack = STACK_OPTIONS.find(o => o.id === answers.stackComplexity);
+      return stack?.summaryBadge ?? '—';
+    }
+    return '—';
   }
   if (step === 3) {
-    const gov = GOVERNANCE_OPTIONS.find(o => o.id === answers.governanceLevel);
-    return gov ? gov.label : '—';
+    const scale = SCALE_OPTIONS.find(o => o.id === answers.scaleEnvironment);
+    return scale?.summaryBadge ?? '—';
   }
   if (step === 4) {
-    const sources = answers.dataSources
-      .map(id => DATA_SOURCES.find(s => s.id === id)?.label)
-      .filter(Boolean);
-    return sources.length ? sources.join(', ') : '—';
-  }
-  if (step === 5) {
-    const ops = [];
-    if (answers.realtimeNeeded) ops.push('Tiempo real');
-    if (answers.agentsNeeded)   ops.push('Agentes / lotes');
-    return ops.length ? ops.join(', ') : 'Sin requisitos operativos';
+    const sec = SECURITY_OPTIONS.find(o => o.id === answers.governanceLevel);
+    return sec?.summaryBadge ?? '—';
   }
   return '—';
+}
+
+function getStep2OutputLabel(answers) {
+  return answers.infraMode === 'from_scratch' ? 'Enfoque operativo' : 'Complejidad del stack';
 }
 
 function getSensitivityLabel(governanceLevel) {
-  if (governanceLevel === 'airgapped') return 'Crítica (aislamiento total)';
-  if (governanceLevel === 'vpc')       return 'Alta (cumplimiento estricto)';
-  if (governanceLevel === 'standard')  return 'Media (operaciones internas)';
+  if (governanceLevel === 'strict_private') return 'Alta (privada / LGPD)';
+  if (governanceLevel === 'standard_flex')  return 'Media (nube estándar)';
   return '—';
 }
 
-const TOTAL_STEPS = 5;
+const FORM_SECTIONS = 4;
 
 const initialAnswers = {
-  processCategory:    '',
-  processDescription: '',
-  userTypes:          [],
-  concurrencyLevel:   '',
-  governanceLevel:    '',
-  dataSources:        [],
-  realtimeNeeded:     false,
-  agentsNeeded:       false,
+  infraMode:         '',
+  scopeFocus:        '',
+  stackComplexity:   '',
+  scaleEnvironment:  '',
+  governanceLevel:   '',
 };
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -471,75 +598,110 @@ const ClientWizard = () => {
   const { fetchWithAuth, API_URL } = useAuth();
   const navigate = useNavigate();
 
-  const [step, setStep]                     = useState(1);
-  const [answers, setAnswers]               = useState(initialAnswers);
+  const [activeStep, setActiveStep]             = useState(1);
+  const [maxVisibleStep, setMaxVisibleStep]     = useState(1);
+  const [showOutput, setShowOutput]               = useState(false);
+  const [answers, setAnswers]                   = useState(initialAnswers);
   const [editingFromOutput, setEditingFromOutput] = useState(null);
-  const [submitting, setSubmitting]         = useState(false);
-  const [submitError, setSubmitError]       = useState(null);
-  const [submitted, setSubmitted]           = useState(false);
+  const [submitting, setSubmitting]             = useState(false);
+  const [submitError, setSubmitError]           = useState(null);
+  const [submitted, setSubmitted]               = useState(false);
 
   // Derived
-  const conflicts       = useMemo(() => detectConflicts(answers),                           [answers]);
-  const confidence      = useMemo(() => calculateConfidence(answers, conflicts, step),    [answers, conflicts, step]);
-  const recommendation  = useMemo(() => buildRecommendation(answers, conflicts, confidence), [answers, conflicts, confidence]);
-  const financial       = useMemo(() => buildFinancialScenario(answers),                    [answers]);
-  const outputStatus    = useMemo(() => getOutputStatus(confidence, conflicts),              [confidence, conflicts]);
-  const assumptionsGaps = useMemo(() => buildAssumptionsAndGaps(answers, conflicts, step), [answers, conflicts, step]);
+  const conflicts       = useMemo(() => detectConflicts(answers), [answers]);
+  const confidence      = useMemo(
+    () => calculateConfidence(answers, conflicts, maxVisibleStep),
+    [answers, conflicts, maxVisibleStep],
+  );
+  const recommendation  = useMemo(() => buildRecommendation(answers), [answers]);
+  const financial       = useMemo(() => buildFinancialScenario(answers), [answers]);
+  const outputStatus    = useMemo(() => getOutputStatus(confidence, conflicts), [confidence, conflicts]);
+  const assumptionsGaps = useMemo(
+    () => buildAssumptionsAndGaps(answers, conflicts, showOutput),
+    [answers, conflicts, showOutput],
+  );
 
   // Helpers
   const setAnswer = useCallback((key, value) =>
     setAnswers(prev => ({ ...prev, [key]: value })), []);
 
-  const toggleArr = useCallback((key, value) =>
+  const advanceToStep = useCallback((step) => {
+    setActiveStep(step);
+    setMaxVisibleStep(prev => Math.max(prev, step));
+  }, []);
+
+  const openStep = useCallback((step) => {
+    setAnswers(prev => resetAnswersAfterStep(prev, step));
+    setActiveStep(step);
+    setMaxVisibleStep(step);
+    setShowOutput(false);
+  }, []);
+
+  const canShowRecommendation = useMemo(
+    () =>
+      !!answers.infraMode &&
+      !!getBranchChoice(answers) &&
+      !!answers.scaleEnvironment &&
+      !!answers.governanceLevel,
+    [answers],
+  );
+
+  const selectInfraMode = useCallback((id) => {
+    setAnswers(prev => {
+      if (prev.infraMode === id) return prev;
+      return { ...initialAnswers, infraMode: id };
+    });
+    advanceToStep(2);
+    setShowOutput(false);
+    setEditingFromOutput(null);
+  }, [advanceToStep]);
+
+  const selectScopeFocus = useCallback((id) => {
     setAnswers(prev => ({
       ...prev,
-      [key]: prev[key].includes(value)
-        ? prev[key].filter(v => v !== value)
-        : [...prev[key], value],
-    })), []);
+      scopeFocus: id,
+      stackComplexity: '',
+    }));
+    advanceToStep(3);
+  }, [advanceToStep]);
 
-  const canAdvance = useMemo(() => {
-    if (step === 1) return !!answers.processCategory;
-    if (step === 2) return !!answers.concurrencyLevel;
-    if (step === 3) return !!answers.governanceLevel;
-    if (step === 4) return answers.dataSources.length > 0;
-    return true;
-  }, [step, answers]);
+  const selectStackComplexity = useCallback((id) => {
+    setAnswers(prev => ({
+      ...prev,
+      stackComplexity: id,
+      scopeFocus: '',
+    }));
+    advanceToStep(3);
+  }, [advanceToStep]);
 
-  const goNext = () => {
-    if (editingFromOutput !== null) { setEditingFromOutput(null); setStep(6); }
-    else if (step < TOTAL_STEPS)   setStep(s => s + 1);
-    else                           setStep(6);
+  const selectScaleEnvironment = useCallback((id) => {
+    setAnswer('scaleEnvironment', id);
+    advanceToStep(4);
+  }, [setAnswer, advanceToStep]);
+
+  const selectSecurity = useCallback((id) => {
+    setAnswer('governanceLevel', id);
+  }, [setAnswer]);
+
+  const goToOutput = () => {
+    if (editingFromOutput !== null) setEditingFromOutput(null);
+    setShowOutput(true);
   };
 
-  const goBack = () => {
-    if (editingFromOutput !== null) { setEditingFromOutput(null); setStep(6); }
-    else if (step > 1)             setStep(s => s - 1);
+  const cancelEditing = () => {
+    setEditingFromOutput(null);
+    setShowOutput(true);
   };
 
-  const editStep = s => { setEditingFromOutput(s); setStep(s); };
+  const editStep = (section) => {
+    setEditingFromOutput(section);
+    openStep(section);
+  };
 
   const handleSubmit = async () => {
     setSubmitting(true);
     setSubmitError(null);
-    const concurrencyMap = { pilot: 25, department: 150, intensive: 500 };
-    const useCases = [
-      ...answers.userTypes,
-      ...answers.dataSources,
-      answers.realtimeNeeded ? 'realtime'  : null,
-      answers.agentsNeeded   ? 'agents'    : null,
-    ].filter(Boolean);
-
-    const payload = {
-      problem_description: `[${answers.processCategory}] ${answers.processDescription || 'Sin descripción adicional.'}`,
-      expected_users_concurrent: concurrencyMap[answers.concurrencyLevel] || 25,
-      data_sensitivity:
-        answers.governanceLevel === 'airgapped' ? 'critical'
-        : answers.governanceLevel === 'vpc'     ? 'high'
-        : 'medium',
-      use_cases_priority: useCases,
-      current_ia_pain_points: recommendation.justification.join(' '),
-    };
+    const payload = buildPayloadFromAnswers(answers, recommendation);
 
     try {
       const res = await fetchWithAuth(`${API_URL}/client-needs`, {
@@ -575,22 +737,25 @@ const ClientWizard = () => {
         <div className="min-w-0">
 
           {/* Step progress */}
-          {step <= TOTAL_STEPS && (
-            <div className="flex items-center gap-1 mb-5">
-              {Array.from({ length: TOTAL_STEPS }).map((_, i) => {
+          {!showOutput && (
+            <div className="flex items-center gap-1 mb-5" aria-label="Progreso del diagnóstico">
+              {Array.from({ length: FORM_SECTIONS }).map((_, i) => {
                 const s = i + 1;
-                const done   = s < step;
-                const active = s === step;
+                const done = s < activeStep || (s <= maxVisibleStep && isStepComplete(s, answers));
+                const active = s === activeStep;
                 return (
                   <React.Fragment key={s}>
-                    <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold border transition-all
-                      ${done   ? 'bg-[#06b6d4] border-[#06b6d4] text-white' :
-                        active ? 'border-[#06b6d4] text-[#06b6d4] bg-[#06b6d4]/10' :
+                    <div
+                      className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold border transition-all
+                      ${done && !active ? 'bg-[#06b6d4] border-[#06b6d4] text-white' :
+                        active ? 'border-[#06b6d4] text-[#06b6d4] bg-[#06b6d4]/10 ring-2 ring-[#06b6d4]/20' :
+                        s <= maxVisibleStep ? 'border-slate-600 text-slate-500' :
                                  'border-slate-700 text-slate-600'}`}
+                      aria-current={active ? 'step' : undefined}
                     >
-                      {done ? <Check className="w-3.5 h-3.5" /> : s}
+                      {done && !active ? <Check className="w-3.5 h-3.5" /> : s}
                     </div>
-                    {i < TOTAL_STEPS - 1 && (
+                    {i < FORM_SECTIONS - 1 && (
                       <div className={`flex-1 h-px ${done ? 'bg-[#06b6d4]/60' : 'bg-slate-800'}`} />
                     )}
                   </React.Fragment>
@@ -601,213 +766,160 @@ const ClientWizard = () => {
 
           {/* Editing badge */}
           {editingFromOutput !== null && (
-            <div className="flex items-center gap-2 mb-4 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
+            <div className="flex flex-wrap items-center gap-2 mb-4 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
               <Edit2 className="h-3.5 w-3.5 shrink-0" />
-              Editando: <span className="font-medium">{STEP_LABELS[editingFromOutput]}</span>
+              Editando: <span className="font-medium">{getStepAccordionMeta(editingFromOutput, answers).label}</span>
               <span className="text-amber-500">— el resto de tus respuestas se conservan.</span>
+              <button
+                type="button"
+                onClick={cancelEditing}
+                className="ml-auto text-amber-300 hover:text-white underline underline-offset-2"
+              >
+                Volver al resultado
+              </button>
             </div>
           )}
 
-          {/* ── Step 1 ───────────────────────────────────────────────── */}
-          {step === 1 && (
-            <StepCard
-              title="¿Qué proceso quiere acelerar o proteger?"
-              description="Selecciona la categoría que mejor describe el caso de uso principal."
+          {!showOutput ? (
+            <div
+              className="bg-slate-950 border border-slate-800/80 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden"
+              role="presentation"
             >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-                {PROCESS_CATEGORIES.map(cat => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setAnswer('processCategory', cat.id)}
-                    className={`text-left p-4 rounded-xl border transition-all
-                      ${answers.processCategory === cat.id
-                        ? 'border-[#06b6d4] bg-[#06b6d4]/10'
-                        : 'border-slate-700 bg-slate-800/40 hover:border-slate-600'}`}
+              {[1, 2, 3, 4].map(stepNum => {
+                if (stepNum > maxVisibleStep) return null;
+                const cfg = getStepAccordionMeta(stepNum, answers);
+                const isActive = activeStep === stepNum;
+                const isCollapsed = !isActive && isStepComplete(stepNum, answers);
+
+                return (
+                  <WizardAccordionStep
+                    key={stepNum}
+                    step={stepNum}
+                    label={cfg.label}
+                    heading={cfg.heading}
+                    description={cfg.description}
+                    summary={formatStepValue(stepNum, answers)}
+                    isActive={isActive}
+                    isCollapsed={isCollapsed}
+                    onOpen={() => openStep(stepNum)}
                   >
-                    <p className={`font-semibold text-sm ${answers.processCategory === cat.id ? 'text-white' : 'text-slate-200'}`}>
-                      {cat.label}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-0.5">{cat.description}</p>
+                    {stepNum === 1 && (
+                      <div
+                        role="radiogroup"
+                        aria-label="Infraestructura base"
+                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                      >
+                        {INFRA_OPTIONS.map(opt => (
+                          <IntentCard
+                            key={opt.id}
+                            option={opt}
+                            selected={answers.infraMode === opt.id}
+                            dimmed={false}
+                            onSelect={selectInfraMode}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {stepNum === 2 && answers.infraMode === 'from_scratch' && (
+                      <div className="grid grid-cols-1 gap-3">
+                        {SCOPE_OPTIONS.map(opt => (
+                          <WizardOptionButton
+                            key={opt.id}
+                            option={opt}
+                            selected={answers.scopeFocus === opt.id}
+                            onSelect={selectScopeFocus}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {stepNum === 2 && answers.infraMode === 'existing' && (
+                      <div className="grid grid-cols-1 gap-3">
+                        {STACK_OPTIONS.map(opt => (
+                          <WizardOptionButton
+                            key={opt.id}
+                            option={opt}
+                            selected={answers.stackComplexity === opt.id}
+                            onSelect={selectStackComplexity}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {stepNum === 3 && (
+                      <div className="grid grid-cols-1 gap-3">
+                        {SCALE_OPTIONS.map(opt => (
+                          <WizardOptionButton
+                            key={opt.id}
+                            option={opt}
+                            selected={answers.scaleEnvironment === opt.id}
+                            onSelect={selectScaleEnvironment}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {stepNum === 4 && (
+                      <div className="space-y-3">
+                        {SECURITY_OPTIONS.map(opt => {
+                          const selected = answers.governanceLevel === opt.id;
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => selectSecurity(opt.id)}
+                              className={`w-full text-left p-4 rounded-xl border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950
+                                ${selected
+                                  ? opt.exceptional
+                                    ? 'border-amber-500 bg-amber-500/10'
+                                    : 'border-[#06b6d4] bg-[#06b6d4]/10'
+                                  : 'border-slate-700 bg-slate-800/40 hover:border-slate-600'}`}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1">
+                                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                                    {opt.exceptional && (
+                                      <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded">
+                                        Enterprise
+                                      </span>
+                                    )}
+                                    <p className={`font-semibold text-sm ${selected ? 'text-white' : 'text-slate-200'}`}>
+                                      {opt.label}
+                                    </p>
+                                  </div>
+                                  <p className="text-xs text-slate-500">{opt.description}</p>
+                                  <p className={`text-[11px] mt-2 font-medium ${selected ? 'text-cyan-400/90' : 'text-slate-600'}`}>
+                                    {opt.summaryBadge}
+                                  </p>
+                                </div>
+                                {opt.exceptional
+                                  ? <Lock className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                                  : <Shield className="h-4 w-4 text-[#06b6d4] shrink-0 mt-0.5" />}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </WizardAccordionStep>
+                );
+              })}
+
+              {canShowRecommendation && activeStep === 4 && (
+                <div className="px-5 sm:px-6 pb-5 sm:pb-6 pt-1 border-t border-slate-800/60">
+                  <button
+                    type="button"
+                    onClick={goToOutput}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#06b6d4] text-white font-medium text-sm hover:bg-[#0ea5e9] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 transition-all"
+                  >
+                    {editingFromOutput !== null ? 'Aplicar cambio y ver recomendación' : 'Ver recomendación'}
+                    <ChevronRight className="h-4 w-4" />
                   </button>
-                ))}
-              </div>
-              <div>
-                <label className="block text-[11px] text-slate-500 uppercase tracking-wider mb-1.5">
-                  Contexto adicional <span className="normal-case text-slate-600">(opcional)</span>
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Ej: Necesitamos revisar cientos de contratos diariamente para extraer cláusulas de renovación..."
-                  value={answers.processDescription}
-                  onChange={e => setAnswer('processDescription', e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white placeholder-slate-600 resize-none focus:border-[#06b6d4] focus:outline-none transition-colors"
-                />
-              </div>
-            </StepCard>
-          )}
-
-          {/* ── Step 2 ───────────────────────────────────────────────── */}
-          {step === 2 && (
-            <StepCard
-              title="¿Quiénes lo usarán y con qué frecuencia?"
-              description="Define el perfil de acceso y el volumen esperado de uso simultáneo."
-            >
-              <div className="mb-5">
-                <label className="block text-[11px] text-slate-500 uppercase tracking-wider mb-2">
-                  Perfil de usuarios <span className="normal-case text-slate-600">(selecciona todos los que apliquen)</span>
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { id: 'devs',      label: 'Desarrolladores internos'  },
-                    { id: 'employees', label: 'Empleados no técnicos'      },
-                    { id: 'external',  label: 'Clientes externos'          },
-                    { id: 'automated', label: 'Procesos automatizados'     },
-                  ].map(ut => (
-                    <button
-                      key={ut.id}
-                      onClick={() => toggleArr('userTypes', ut.id)}
-                      className={`px-3 py-1.5 rounded-full text-sm border transition-all
-                        ${answers.userTypes.includes(ut.id)
-                          ? 'border-[#06b6d4] bg-[#06b6d4]/10 text-[#06b6d4] font-medium'
-                          : 'border-slate-700 text-slate-400 hover:border-slate-500'}`}
-                    >
-                      {ut.label}
-                    </button>
-                  ))}
                 </div>
-              </div>
-              <div>
-                <label className="block text-[11px] text-slate-500 uppercase tracking-wider mb-2">
-                  Uso simultáneo estimado
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {CONCURRENCY_OPTIONS.map(opt => (
-                    <button
-                      key={opt.id}
-                      onClick={() => setAnswer('concurrencyLevel', opt.id)}
-                      className={`text-left p-4 rounded-xl border transition-all
-                        ${answers.concurrencyLevel === opt.id
-                          ? 'border-[#06b6d4] bg-[#06b6d4]/10'
-                          : 'border-slate-700 bg-slate-800/40 hover:border-slate-600'}`}
-                    >
-                      <p className={`font-semibold text-sm ${answers.concurrencyLevel === opt.id ? 'text-white' : 'text-slate-200'}`}>
-                        {opt.label}
-                      </p>
-                      <p className="text-xs text-slate-500 mt-0.5">{opt.sublabel}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </StepCard>
-          )}
-
-          {/* ── Step 3 ───────────────────────────────────────────────── */}
-          {step === 3 && (
-            <StepCard
-              title="¿Cuánto control necesita sobre sus datos?"
-              description="Define el nivel de gobernanza y aislamiento requerido."
-            >
-              <div className="space-y-3">
-                {GOVERNANCE_OPTIONS.map(opt => {
-                  const selected = answers.governanceLevel === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      onClick={() => setAnswer('governanceLevel', opt.id)}
-                      className={`w-full text-left p-4 rounded-xl border transition-all
-                        ${selected
-                          ? opt.exceptional
-                            ? 'border-amber-500 bg-amber-500/10'
-                            : 'border-[#06b6d4] bg-[#06b6d4]/10'
-                          : 'border-slate-700 bg-slate-800/40 hover:border-slate-600'}`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1">
-                          <div className="flex flex-wrap items-center gap-2 mb-1">
-                            {opt.exceptional && (
-                              <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded">
-                                Condición avanzada
-                              </span>
-                            )}
-                            <p className={`font-semibold text-sm ${selected ? 'text-white' : 'text-slate-200'}`}>
-                              {opt.label}
-                            </p>
-                          </div>
-                          <p className="text-xs text-slate-500">{opt.description}</p>
-                          {opt.exceptional && selected && (
-                            <p className="text-xs text-amber-400/90 mt-2">
-                              Implica: sin conectividad externa en tiempo real, administración técnica local continua, mayor complejidad de despliegue inicial.
-                            </p>
-                          )}
-                        </div>
-                        {opt.exceptional
-                          ? <Lock  className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-                          : <Shield className="h-4 w-4 text-[#06b6d4] shrink-0 mt-0.5" />}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </StepCard>
-          )}
-
-          {/* ── Step 4 ───────────────────────────────────────────────── */}
-          {step === 4 && (
-            <StepCard
-              title="¿Con qué tipo de información trabajará el sistema?"
-              description="Selecciona todas las fuentes de datos que el sistema deberá procesar."
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {DATA_SOURCES.map(({ id, label, sublabel, Icon }) => {
-                  const sel = answers.dataSources.includes(id);
-                  return (
-                    <button
-                      key={id}
-                      onClick={() => toggleArr('dataSources', id)}
-                      className={`text-left p-4 rounded-xl border transition-all flex items-start gap-3
-                        ${sel
-                          ? 'border-[#06b6d4] bg-[#06b6d4]/10'
-                          : 'border-slate-700 bg-slate-800/40 hover:border-slate-600'}`}
-                    >
-                      <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${sel ? 'text-[#06b6d4]' : 'text-slate-500'}`} />
-                      <div>
-                        <p className={`font-semibold text-sm ${sel ? 'text-white' : 'text-slate-200'}`}>{label}</p>
-                        <p className="text-xs text-slate-500">{sublabel}</p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </StepCard>
-          )}
-
-          {/* ── Step 5 ───────────────────────────────────────────────── */}
-          {step === 5 && (
-            <StepCard
-              title="¿Cómo necesita responder el sistema?"
-              description="Indica los requisitos operativos del nodo. Ambas opciones son independientes."
-            >
-              <div className="space-y-3">
-                <ToggleOption
-                  label="Respuesta en tiempo real"
-                  sublabel="El sistema debe responder en milisegundos. Implica prioridad de procesamiento y posiblemente hardware de cómputo dedicado."
-                  icon={<Zap className="h-4 w-4" />}
-                  active={answers.realtimeNeeded}
-                  onChange={() => setAnswer('realtimeNeeded', !answers.realtimeNeeded)}
-                />
-                <ToggleOption
-                  label="Automatización mediante agentes"
-                  sublabel="El sistema ejecuta flujos autónomos o procesos por lotes sin intervención humana continua."
-                  icon={<Activity className="h-4 w-4" />}
-                  active={answers.agentsNeeded}
-                  onChange={() => setAnswer('agentsNeeded', !answers.agentsNeeded)}
-                />
-              </div>
-            </StepCard>
-          )}
-
-          {/* ── Step 6: Output ───────────────────────────────────────── */}
-          {step === 6 && (
+              )}
+            </div>
+          ) : (
             <OutputPanel
               answers={answers}
               recommendation={recommendation}
@@ -825,30 +937,6 @@ const ClientWizard = () => {
             />
           )}
 
-          {/* Navigation */}
-          {step <= TOTAL_STEPS && (
-            <div className="flex justify-between mt-5">
-              <button
-                onClick={goBack}
-                disabled={step === 1 && editingFromOutput === null}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-700 text-slate-400 hover:border-slate-600 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                {editingFromOutput !== null ? 'Cancelar edición' : 'Anterior'}
-              </button>
-              <button
-                onClick={goNext}
-                disabled={!canAdvance}
-                className="flex items-center gap-1.5 px-6 py-2.5 rounded-xl bg-[#06b6d4] text-white font-medium text-sm hover:bg-[#0ea5e9] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              >
-                {editingFromOutput !== null
-                  ? 'Aplicar cambio'
-                  : step === TOTAL_STEPS ? 'Ver recomendación' : 'Siguiente'}
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          )}
-
         </div>
 
         {/* RIGHT: Reasoning Panel ─────────────────────────────────────────── */}
@@ -858,7 +946,7 @@ const ClientWizard = () => {
             recommendation={recommendation}
             conflicts={conflicts}
             confidence={confidence}
-            step={step}
+            showOutput={showOutput}
             assumptionsGaps={assumptionsGaps}
           />
         </div>
@@ -870,35 +958,155 @@ const ClientWizard = () => {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-const StepCard = ({ title, description, children }) => (
-  <div className="bg-[#0b1426] border border-[#1e3a8a]/40 rounded-2xl p-6">
-    <h2 className="text-lg font-bold text-white mb-1">{title}</h2>
-    <p className="text-sm text-slate-400 mb-5">{description}</p>
-    {children}
-  </div>
-);
+const INTENT_ACCENT = {
+  cyan: {
+    active: 'border-cyan-400 bg-cyan-500/10 shadow-lg shadow-cyan-500/10 ring-2 ring-cyan-400/25',
+    focus: 'focus-visible:ring-cyan-400',
+    badge: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
+  },
+  violet: {
+    active: 'border-violet-400 bg-violet-500/10 shadow-lg shadow-violet-500/10 ring-2 ring-violet-400/25',
+    focus: 'focus-visible:ring-violet-400',
+    badge: 'text-violet-400 bg-violet-500/10 border-violet-500/20',
+  },
+};
 
-const ToggleOption = ({ label, sublabel, icon, active, onChange }) => (
+const WizardAccordionStep = ({
+  step, label, heading, description, summary,
+  isActive, isCollapsed, onOpen, children,
+}) => {
+  const headerId = `wizard-header-${step}`;
+  const panelId = `wizard-panel-${step}`;
+  const contentRef = useRef(null);
+  const [panelHeight, setPanelHeight] = useState(0);
+
+  useEffect(() => {
+    if (!isActive || !contentRef.current) return undefined;
+    const node = contentRef.current;
+    const update = () => setPanelHeight(node.scrollHeight);
+    update();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
+    ro?.observe(node);
+    return () => ro?.disconnect();
+  }, [isActive, children]);
+
+  const handleHeaderKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onOpen();
+    }
+  };
+
+  if (isCollapsed) {
+    return (
+      <div className="border-b border-slate-800/50 last:border-b-0">
+        <button
+          type="button"
+          id={headerId}
+          aria-expanded={false}
+          aria-controls={panelId}
+          onClick={onOpen}
+          onKeyDown={handleHeaderKeyDown}
+          className="w-full flex items-center gap-3 px-5 py-3.5 text-left bg-slate-900/30 hover:bg-slate-800/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-400/70"
+        >
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/15 text-emerald-400 shrink-0">
+            <Check className="w-3.5 h-3.5" aria-hidden="true" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] text-slate-500 uppercase tracking-wide">{label}</p>
+            <p className="text-sm text-slate-300 font-medium truncate mt-0.5">{summary}</p>
+          </div>
+          <Edit2 className="w-3.5 h-3.5 text-slate-600 shrink-0" aria-hidden="true" />
+        </button>
+      </div>
+    );
+  }
+
+  if (!isActive) return null;
+
+  return (
+    <div className="border-b border-slate-800/50 last:border-b-0 bg-slate-900/50 ring-1 ring-inset ring-cyan-500/10">
+      <div
+        id={headerId}
+        className="px-5 pt-5 pb-1"
+        aria-expanded={true}
+        aria-controls={panelId}
+      >
+        <span className="inline-flex text-[10px] font-bold uppercase tracking-wider text-cyan-400/90 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full">
+          Paso {step} · Activo
+        </span>
+        <h3 className="text-lg sm:text-xl font-bold text-white mt-3 tracking-tight">{heading}</h3>
+        <p className="text-sm text-slate-400 mt-1.5 max-w-2xl">{description}</p>
+      </div>
+      <div
+        id={panelId}
+        role="region"
+        aria-labelledby={headerId}
+        className="overflow-hidden transition-[max-height,opacity] duration-500 ease-in-out motion-reduce:transition-none"
+        style={{
+          maxHeight: panelHeight ? panelHeight + 32 : 0,
+          opacity: panelHeight ? 1 : 0,
+        }}
+      >
+        <div ref={contentRef} className="px-5 pb-6 pt-3">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const WizardOptionButton = ({ option, selected, onSelect }) => (
   <button
-    onClick={onChange}
-    className={`w-full text-left p-4 rounded-xl border transition-all flex items-start gap-4
-      ${active ? 'border-[#06b6d4] bg-[#06b6d4]/10' : 'border-slate-700 bg-slate-800/30 hover:border-slate-600'}`}
+    type="button"
+    onClick={() => onSelect(option.id)}
+    className={`w-full text-left p-4 rounded-xl border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950
+      ${selected
+        ? 'border-[#06b6d4] bg-[#06b6d4]/10'
+        : 'border-slate-700 bg-slate-800/40 hover:border-slate-600'}`}
   >
-    <div className={`mt-0.5 shrink-0 ${active ? 'text-[#06b6d4]' : 'text-slate-600'}`}>{icon}</div>
-    <div className="flex-1 min-w-0">
-      <p className={`font-semibold text-sm ${active ? 'text-white' : 'text-slate-300'}`}>{label}</p>
-      <p className="text-xs text-slate-500 mt-0.5">{sublabel}</p>
-    </div>
-    <div className={`w-10 h-5 rounded-full flex items-center transition-colors shrink-0 mt-0.5
-      ${active ? 'bg-[#06b6d4] justify-end pr-0.5' : 'bg-slate-700 justify-start pl-0.5'}`}>
-      <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
-    </div>
+    <p className={`font-semibold text-sm ${selected ? 'text-white' : 'text-slate-200'}`}>{option.label}</p>
+    <p className="text-xs text-slate-500 mt-0.5">{option.description}</p>
+    <p className={`text-[11px] mt-2 font-medium ${selected ? 'text-cyan-400/90' : 'text-slate-600'}`}>
+      {option.summaryBadge}
+    </p>
   </button>
 );
 
-const ReasoningPanel = ({ answers, recommendation, conflicts, confidence, step, assumptionsGaps }) => {
+const IntentCard = ({ option, selected, dimmed, onSelect }) => {
+  const styles = INTENT_ACCENT[option.accent];
+
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={() => onSelect(option.id)}
+      className={`
+        group text-left p-6 sm:p-7 rounded-2xl border transition-all duration-300
+        focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950
+        ${styles.focus}
+        ${selected ? styles.active : 'border-slate-700/80 bg-slate-900/70 hover:border-slate-500 hover:bg-slate-800/60'}
+        ${dimmed ? 'opacity-40' : 'opacity-100'}
+      `}
+    >
+      <span className={`inline-flex text-[10px] font-bold uppercase tracking-wider border px-2 py-0.5 rounded-full mb-3 ${styles.badge}`}>
+        Paso 1
+      </span>
+      <p className={`text-lg font-bold ${selected ? 'text-white' : 'text-slate-100 group-hover:text-white'}`}>
+        {option.label}
+      </p>
+      <p className="text-sm text-slate-400 mt-2 leading-relaxed">{option.description}</p>
+      <p className={`text-[11px] mt-3 font-medium ${selected ? (option.accent === 'cyan' ? 'text-cyan-400/90' : 'text-violet-400/90') : 'text-slate-600'}`}>
+        {option.summaryBadge}
+      </p>
+    </button>
+  );
+};
+
+const ReasoningPanel = ({ answers, recommendation, conflicts, confidence, showOutput, assumptionsGaps }) => {
   const cfg = CONFIDENCE_CFG[confidence];
-  const hasAny = answers.processCategory || answers.concurrencyLevel || answers.governanceLevel;
+  const hasAny = answers.infraMode || getBranchChoice(answers) || answers.scaleEnvironment || answers.governanceLevel;
 
   return (
     <div className="bg-[#0b1426] border border-[#1e3a8a]/40 rounded-2xl p-5 space-y-5 sticky top-4">
@@ -915,7 +1123,7 @@ const ReasoningPanel = ({ answers, recommendation, conflicts, confidence, step, 
           {cfg.label}
         </div>
         <p className="text-[11px] text-slate-600 mt-1.5 leading-relaxed">
-          {confidence === 'low' && 'Menos de 3 pasos respondidos o conflictos sin resolver.'}
+          {confidence === 'low' && 'Menos de 4 pasos respondidos o conflictos sin resolver.'}
           {confidence === 'medium' && 'Respuestas parciales, supuestos abiertos o coherencia parcial.'}
           {confidence === 'high' && 'Todos los pasos respondidos, sin conflictos activos y supuestos mínimos.'}
         </p>
@@ -972,7 +1180,7 @@ const ReasoningPanel = ({ answers, recommendation, conflicts, confidence, step, 
           ))}
           <p className="text-[11px] text-amber-500/80">La recomendación queda condicionada hasta resolver estos conflictos.</p>
         </div>
-      ) : hasAny && step < 6 && (
+      ) : hasAny && !showOutput && (
         <div>
           <p className="text-[10px] text-slate-600 uppercase tracking-wider mb-1.5">C. Contradicciones detectadas</p>
           <p className="text-xs text-slate-600">No se detectaron conflictos entre las respuestas actuales.</p>
@@ -980,7 +1188,7 @@ const ReasoningPanel = ({ answers, recommendation, conflicts, confidence, step, 
       )}
 
       {/* Supuestos abiertos (contexto para confianza) */}
-      {assumptionsGaps.assumptions.length > 0 && step < 6 && (
+      {assumptionsGaps.assumptions.length > 0 && !showOutput && (
         <div>
           <p className="text-[10px] text-slate-600 uppercase tracking-wider mb-1.5">Supuestos abiertos</p>
           <ul className="space-y-1">
@@ -1027,41 +1235,26 @@ const OutputPanel = ({
           <p className="text-sm text-slate-300 mb-3 leading-relaxed">{recommendation.inferredProfile}</p>
         )}
         <div className="space-y-0 divide-y divide-slate-800">
-          {[1, 2, 3, 4, 5].map(s => (
+          {[1, 2, 3, 4].map(s => (
             <EditableRow
               key={s}
-              label={STEP_LABELS[s]}
+              label={s === 2 ? getStep2OutputLabel(answers) : STEP_LABELS[s]}
               value={formatStepValue(s, answers)}
               onEdit={() => onEditStep(s)}
             />
           ))}
         </div>
-        <div className="mt-3 pt-3 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-          <div>
-            <span className="text-slate-500">Tipo de usuarios: </span>
-            <span className="text-slate-300">
-              {answers.userTypes.length
-                ? answers.userTypes.map(id => USER_TYPE_LABELS[id]).join(', ')
-                : 'No especificado'}
-            </span>
-          </div>
-          <div>
-            <span className="text-slate-500">Sensibilidad de datos: </span>
-            <span className="text-slate-300">{getSensitivityLabel(answers.governanceLevel)}</span>
-          </div>
+        <div className="mt-3 pt-3 border-t border-slate-800 text-xs">
+          <span className="text-slate-500">Sensibilidad de datos: </span>
+          <span className="text-slate-300">{getSensitivityLabel(answers.governanceLevel)}</span>
         </div>
-        {answers.processDescription && (
-          <p className="text-xs text-slate-500 mt-3 italic border-t border-slate-800 pt-3">
-            &ldquo;{answers.processDescription}&rdquo;
-          </p>
-        )}
       </OutputSection>
 
       {/* 2. Arquitectura sugerida */}
       <OutputSection title="2. Arquitectura sugerida">
         {recommendation.architecture
           ? <p className="text-sm text-white font-medium">{recommendation.architecture}</p>
-          : <p className="text-xs text-slate-500">Define gobernanza y volumen para completar esta sección.</p>
+          : <p className="text-xs text-slate-500">Define escala, gobernanza y el resto de pasos para completar esta sección.</p>
         }
         <p className="text-xs text-slate-600 mt-2">
           Los valores concretos de hardware y licencias se definen en la propuesta formal.
