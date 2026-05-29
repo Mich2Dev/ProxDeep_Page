@@ -1,47 +1,115 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import {
   MOCK_USER, MOCK_TOKEN, MOCK_SMLS, MOCK_NEED, MOCK_PROPOSAL
 } from '../mockData';
+import { AuthContext } from './AuthContext';
 
-const AuthContext = createContext(null);
-
-// In demo mode, VITE_DEMO_MODE=true bypasses all API calls
-const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
+// AuthContextDemo is only used by AppDemo — always bypass backend
+const DEMO_MODE = true;
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-const parseJwt = (token) => {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      window.atob(base64).split('').map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
-    );
-    return JSON.parse(jsonPayload);
-  } catch (e) { return null; }
+let demoNeeds = [{ ...MOCK_NEED }];
+let demoProposals = [{ ...MOCK_PROPOSAL }];
+
+const mockResponse = (data, ok = true, status = 200) =>
+  Promise.resolve({
+    ok,
+    status,
+    json: () => Promise.resolve(data),
+  });
+
+const buildDemoUser = (email, companyName) => {
+  const role = (email || '').toLowerCase().includes('admin') ? 'admin' : 'client';
+  return {
+    ...MOCK_USER,
+    email: email || MOCK_USER.email,
+    role,
+    company_name: companyName || (role === 'admin' ? 'ProxDeep Admin' : MOCK_USER.company_name),
+  };
 };
 
-// Mock fetch that returns demo data without any network calls
-const mockFetch = (url) => {
-  const path = url.replace(API_URL, '');
-  let data = [];
+const mockFetch = (url, options = {}) => {
+  const path = url.replace(API_URL, '').replace(/^\//, '');
+  const method = (options.method || 'GET').toUpperCase();
 
-  if (path.includes('/smls'))          data = MOCK_SMLS;
-  else if (path.includes('/client-needs')) data = [MOCK_NEED];
-  else if (path.includes('/proposals'))    data = [MOCK_PROPOSAL];
-  else if (path.includes('/users'))        data = [];
-  else if (path.includes('/auth/login') || path.includes('/auth/register')) {
-    return Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve({ token: MOCK_TOKEN, user: MOCK_USER }),
-      status: 200,
+  if (path.includes('auth/login') || path.includes('auth/register')) {
+    return mockResponse({ token: MOCK_TOKEN, user: MOCK_USER });
+  }
+
+  if (path === 'smls' || path.endsWith('/smls')) {
+    return mockResponse(MOCK_SMLS);
+  }
+
+  const needById = path.match(/client-needs\/(\d+)/);
+  if (needById) {
+    const id = Number(needById[1]);
+    const need = demoNeeds.find(n => n.id === id) || { ...MOCK_NEED, id };
+    return mockResponse(need);
+  }
+
+  if (path.includes('admin/client-needs') || path === 'client-needs' || path.startsWith('client-needs?')) {
+    if (method === 'POST') {
+      const body = options.body ? JSON.parse(options.body) : {};
+      const newNeed = {
+        id: demoNeeds.length + 1,
+        status: 'submitted',
+        created_at: new Date().toISOString(),
+        ...body,
+      };
+      demoNeeds = [...demoNeeds, newNeed];
+      return mockResponse(newNeed, true, 201);
+    }
+    return mockResponse([...demoNeeds]);
+  }
+
+  const proposalStatus = path.match(/proposals\/(\d+)\/status/);
+  if (proposalStatus && method === 'PUT') {
+    const id = Number(proposalStatus[1]);
+    const body = options.body ? JSON.parse(options.body) : {};
+    demoProposals = demoProposals.map(p =>
+      p.id === id ? { ...p, status: body.status || p.status } : p
+    );
+    return mockResponse(demoProposals.find(p => p.id === id) || MOCK_PROPOSAL);
+  }
+
+  const generateAuto = path.match(/proposals\/generate_auto\/(\d+)/);
+  if (generateAuto && method === 'POST') {
+    const needId = Number(generateAuto[1]);
+    const newProposal = {
+      ...MOCK_PROPOSAL,
+      id: demoProposals.length + 1,
+      client_need_id: needId,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+    };
+    demoProposals = [...demoProposals, newProposal];
+    return mockResponse(newProposal, true, 201);
+  }
+
+  const proposalById = path.match(/proposals\/(\d+)/);
+  if (proposalById) {
+    const id = Number(proposalById[1]);
+    const proposal = demoProposals.find(p => p.id === id) || { ...MOCK_PROPOSAL, id };
+    return mockResponse(proposal);
+  }
+
+  if (path.includes('admin/proposals') || path === 'proposals' || path.startsWith('proposals?')) {
+    return mockResponse([...demoProposals]);
+  }
+
+  if (path.includes('/bot/')) {
+    const body = options.body ? JSON.parse(options.body) : {};
+    const smlHint = body.sml_name ? ` (${body.sml_name})` : '';
+    return mockResponse({
+      reply: `Respuesta demo del nodo local${smlHint}: procesamiento completado sin salir de la VPC privada.`,
     });
   }
 
-  return Promise.resolve({
-    ok: true,
-    json: () => Promise.resolve(data),
-    status: 200,
-  });
+  if (path.includes('/users')) {
+    return mockResponse([]);
+  }
+
+  return mockResponse({});
 };
 
 export const AuthProvider = ({ children }) => {
@@ -50,89 +118,43 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (DEMO_MODE) {
-      // Auto-login as demo user
-      const storedRole = localStorage.getItem('proxdeep_demo_role');
-      if (storedRole === 'loggedin') {
-        setToken(MOCK_TOKEN);
-        setUser(MOCK_USER);
-      }
-      setLoading(false);
-      return;
-    }
-
-    const storedToken = localStorage.getItem('sovereign_token');
-    if (storedToken) {
-      const decoded = parseJwt(storedToken);
-      if (decoded && decoded.exp * 1000 > Date.now()) {
-        setToken(storedToken);
-        setUser({ id: decoded.id, email: decoded.email, role: decoded.role, company_name: decoded.company_name });
-      } else {
-        localStorage.removeItem('sovereign_token');
-      }
+    const storedRole = localStorage.getItem('proxdeep_demo_role');
+    if (storedRole === 'loggedin') {
+      setToken(MOCK_TOKEN);
+      setUser(MOCK_USER);
     }
     setLoading(false);
   }, []);
 
   const login = async (email, password) => {
-    if (DEMO_MODE) {
-      localStorage.setItem('proxdeep_demo_role', 'loggedin');
-      setToken(MOCK_TOKEN);
-      setUser(MOCK_USER);
-      return MOCK_USER;
-    }
-    try {
-      const res = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || data.error || 'Fallo al iniciar sesión.');
-      localStorage.setItem('sovereign_token', data.token);
-      setToken(data.token);
-      setUser(data.user);
-      return data.user;
-    } catch (error) { throw error; }
+    const demoUser = buildDemoUser(email);
+    localStorage.setItem('proxdeep_demo_role', 'loggedin');
+    localStorage.removeItem('sovereign_token');
+    setToken(MOCK_TOKEN);
+    setUser(demoUser);
+    return demoUser;
   };
 
   const register = async (email, password, role, companyName) => {
-    if (DEMO_MODE) {
-      const demoUser = { ...MOCK_USER, email, company_name: companyName || 'Tu Empresa' };
-      localStorage.setItem('proxdeep_demo_role', 'loggedin');
-      setToken(MOCK_TOKEN);
-      setUser(demoUser);
-      return demoUser;
-    }
-    try {
-      const res = await fetch(`${API_URL}/auth/register`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role, company_name: companyName }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || data.error || 'Error al registrarse.');
-      localStorage.setItem('sovereign_token', data.token);
-      setToken(data.token);
-      setUser(data.user);
-      return data.user;
-    } catch (error) { throw error; }
+    const demoUser = buildDemoUser(email, companyName);
+    if (role) demoUser.role = role;
+    localStorage.setItem('proxdeep_demo_role', 'loggedin');
+    localStorage.removeItem('sovereign_token');
+    setToken(MOCK_TOKEN);
+    setUser(demoUser);
+    return demoUser;
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('sovereign_token');
     localStorage.removeItem('proxdeep_demo_role');
     setToken(null);
     setUser(null);
-  };
+  }, []);
 
-  const fetchWithAuth = async (url, options = {}) => {
-    if (DEMO_MODE) return mockFetch(url);
-
-    const headers = { 'Content-Type': 'application/json', ...options.headers };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    const res = await fetch(url, { ...options, headers });
-    if (res.status === 401 || res.status === 403) logout();
-    return res;
-  };
+  const fetchWithAuth = useCallback(async (url, options = {}) => {
+    return mockFetch(url, options);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, token, loading, login, register, logout, fetchWithAuth, API_URL, DEMO_MODE }}>

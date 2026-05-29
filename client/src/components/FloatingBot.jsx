@@ -3,7 +3,7 @@ import { MessageCircle, X, Send, Bot, Minimize2, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const FloatingBot = () => {
-  const { API_URL } = useAuth();
+  const { fetchWithAuth, API_URL, DEMO_MODE } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'bot', content: '¡Hola! Soy el Asistente ProxDeep. ¿Quieres saber cómo blindar tus datos o ahorrar un 80% en costos de IA?' }
@@ -30,11 +30,16 @@ const FloatingBot = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/bot/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage })
-      });
+      const response = DEMO_MODE
+        ? await fetchWithAuth(`${API_URL}/bot/chat`, {
+            method: 'POST',
+            body: JSON.stringify({ message: userMessage }),
+          })
+        : await fetch(`${API_URL}/bot/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: userMessage }),
+          });
 
       const data = await response.json();
 

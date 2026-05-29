@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { CheckCircle2, Circle, AlertCircle, ArrowRight, Server, Cpu, FileText, DollarSign, Zap, Shield, Database, TrendingUp, Calendar, Users, Lock } from 'lucide-react';
+import { buildCloudRoiComparison } from '../utils/cloudRoi';
 
 const STATUS_LABELS = {
   draft: 'Borrador',
@@ -102,10 +103,9 @@ const ClientDashboard = () => {
   const sensitivity = latestNeed?.data_sensitivity || 'medium';
   const sensBadge = SENSITIVITY_BADGE[sensitivity] || SENSITIVITY_BADGE['medium'];
 
-  const awsReservedAnnual = proposal ? Math.round(gpusNeeded * 0.60 * 8760) : 0;
-  const openaiAnnual      = proposal ? Math.round(users * 500_000 * 12 * (15 / 1_000_000)) : 0;
-  const savingsVsCloud    = awsReservedAnnual > 0 ? Math.round(((awsReservedAnnual - totalCost) / awsReservedAnnual) * 100) : 0;
-  const annualSavingsUSD  = awsReservedAnnual - totalCost;
+  const roi = proposal ? buildCloudRoiComparison(users, totalCost) : null;
+  const savingsVsCloud = roi?.savingsVsBestCloud ?? 0;
+  const annualSavingsUSD = roi?.annualSavingsUSD ?? 0;
 
   const proposalSmlIds = proposal ? parseIds(proposal.recommended_sml_ids) : [];
   const proposalSmls = smls.filter(s => proposalSmlIds.includes(s.id));
@@ -329,30 +329,23 @@ const ClientDashboard = () => {
                   <h2 className="text-sm font-bold text-white uppercase tracking-wider">ROI vs Cloud</h2>
                 </div>
                 <div className="space-y-2.5 mb-4">
-                  {(() => {
-                    const items = [
-                      { label: 'AWS On-Demand', val: Math.round(gpusNeeded * 1.006 * 8760), color: 'bg-orange-500' },
-                      { label: 'AWS Reserved 1yr', val: awsReservedAnnual, color: 'bg-yellow-500' },
-                      { label: 'Azure T4 v3', val: Math.round(gpusNeeded * 0.752 * 8760), color: 'bg-blue-500' },
-                      { label: 'OpenAI GPT-4o API', val: openaiAnnual, color: 'bg-purple-500' },
-                      { label: 'ProxDeep ✓', val: totalCost, color: 'bg-emerald-500', highlight: true },
-                    ];
-                    const max = Math.max(...items.map(i => i.val), 1);
-                    return items.map(({ label, val, color, highlight }) => {
-                      const pct = Math.max(4, Math.round((val / max) * 100));
-                      return (
-                        <div key={label}>
-                          <div className="flex justify-between text-xs mb-1">
-                            <span className={highlight ? 'text-emerald-400 font-bold' : 'text-slate-400'}>{label}</span>
-                            <span className={highlight ? 'text-emerald-400 font-bold' : 'text-slate-300'}>${val.toLocaleString('en-US')} USD/yr</span>
-                          </div>
-                          <div className="w-full bg-slate-800 rounded-full h-1.5">
-                            <div className={`${color} h-1.5 rounded-full`} style={{ width: `${pct}%` }}></div>
-                          </div>
+                  {roi.chartItems.map(({ label, annual, highlight }) => {
+                    const pct = Math.max(4, Math.round((annual / roi.maxVal) * 100));
+                    const color = highlight ? 'bg-emerald-500' : 'bg-slate-500';
+                    return (
+                      <div key={label}>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className={highlight ? 'text-emerald-400 font-bold' : 'text-slate-400'}>
+                            {highlight ? `${label} — menor costo` : label}
+                          </span>
+                          <span className={highlight ? 'text-emerald-400 font-bold' : 'text-slate-300'}>${annual.toLocaleString('en-US')} USD/yr</span>
                         </div>
-                      );
-                    });
-                  })()}
+                        <div className="w-full bg-slate-800 rounded-full h-1.5">
+                          <div className={`${color} h-1.5 rounded-full`} style={{ width: `${pct}%` }}></div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
                 <div className="flex gap-3">
                   <div className="flex-1 bg-emerald-900/30 border border-emerald-800/50 rounded-xl p-3 text-center">

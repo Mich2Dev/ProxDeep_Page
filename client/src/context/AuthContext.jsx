@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 
-const AuthContext = createContext(null);
+export const AuthContext = createContext(null);
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -123,4 +123,16 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+const defaultAuth = {
+  user: null,
+  token: null,
+  loading: false,
+  login: async () => { throw new Error('Auth no inicializado.'); },
+  register: async () => { throw new Error('Auth no inicializado.'); },
+  logout: () => {},
+  fetchWithAuth: async () => { throw new Error('Auth no inicializado.'); },
+  API_URL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  DEMO_MODE: false,
+};
+
+export const useAuth = () => useContext(AuthContext) ?? defaultAuth;
