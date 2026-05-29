@@ -20,19 +20,19 @@ const Navbar = () => {
   const linkClass = (path) =>
     `flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
       isActive(path)
-        ? 'bg-[#0b1426] border border-[#06b6d4] text-[#06b6d4] shadow-glow'
-        : 'text-slate-300 hover:bg-[#0b1426] hover:text-white'
+        ? 'bg-emerald-950/20 border border-emerald-500/30 text-emerald-400 shadow-glow'
+        : 'text-slate-400 hover:bg-[#0a0a0a] hover:text-white'
     }`;
 
   return (
-    <nav className="bg-slate-900 border-b border-slate-800 sticky top-0 z-40">
+    <nav className="bg-[#030712]/90 backdrop-blur-md border-b border-slate-800/50 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-14 sm:h-16 items-center justify-between">
 
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 text-white font-bold text-lg sm:text-xl tracking-wide shrink-0">
-            <Shield className="h-6 w-6 sm:h-7 sm:w-7 text-[#06b6d4]" />
-            <span>PROX<span className="text-[#06b6d4]">DEEP</span></span>
+          <Link to="/" className="flex items-center gap-2 text-white font-bold text-lg sm:text-xl tracking-wide shrink-0 font-outfit">
+            <img src="/logo.png" alt="ProxDeep Logo" className="h-8 sm:h-10 w-auto object-contain" />
+            <span>PROX<span className="text-blue-500">DEEP</span></span>
           </Link>
 
           {/* Desktop Nav */}
@@ -85,7 +85,7 @@ const Navbar = () => {
                 <Link to="/login" className={linkClass('/login')}>
                   <LogIn className="h-4 w-4" /> Ingresar
                 </Link>
-                <Link to="/register" className="btn-primary flex items-center gap-1.5 px-4 py-2 text-sm ml-1">
+                <Link to="/register" className="flex items-center gap-1.5 px-4 py-2 text-sm ml-1 bg-white hover:bg-slate-200 text-black font-semibold rounded-lg transition-colors">
                   <UserPlus className="h-4 w-4" /> Registrarse
                 </Link>
               </>
@@ -105,7 +105,7 @@ const Navbar = () => {
 
       {/* Mobile Menu — full screen overlay */}
       {isOpen && (
-        <div className="md:hidden border-t border-slate-800 bg-slate-900 px-4 pt-3 pb-6 space-y-1">
+        <div className="md:hidden border-t border-slate-800 bg-[#030712] px-4 pt-3 pb-6 space-y-1">
           {user ? (
             <>
               {user.role === 'client' && (
@@ -149,7 +149,7 @@ const Navbar = () => {
               <Link to="/login" onClick={() => setIsOpen(false)} className={linkClass('/login')}>
                 <LogIn className="h-4 w-4" /> Ingresar
               </Link>
-              <Link to="/register" onClick={() => setIsOpen(false)} className="btn-primary flex items-center gap-2 px-3 py-3 text-sm mt-2">
+              <Link to="/register" onClick={() => setIsOpen(false)} className="flex items-center justify-center gap-2 px-3 py-3 text-sm mt-2 bg-white text-black font-semibold rounded-lg hover:bg-slate-200 transition-colors">
                 <UserPlus className="h-4 w-4" /> Registrarse
               </Link>
             </>
