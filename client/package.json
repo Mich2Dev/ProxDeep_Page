@@ -7,9 +7,11 @@
     "dev": "vite --host --mode demo",
     "build": "vite build",
     "verify:wizard": "node scripts/verify-wizard-4step-logic.mjs",
+    "verify:wizard:domain": "npx tsx scripts/verify-wizard-domain.ts",
     "verify:wizard:contract": "node scripts/verify-wizard-payload-contract.mjs",
     "verify:wizard:e2e": "node scripts/e2e-wizard-4step.mjs",
-    "verify:all": "npm run verify:wizard && npm run verify:wizard:contract && npm run verify:wizard:e2e",
+    "verify:all": "npm run typecheck && npm run verify:wizard:domain && npm run verify:wizard && npm run verify:wizard:contract && npm run verify:wizard:e2e",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
@@ -31,6 +33,8 @@
     "playwright": "^1.52.0",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.3",
+    "tsx": "^4.22.3",
+    "typescript": "^5.9.3",
     "vite": "^5.2.11"
   }
 }

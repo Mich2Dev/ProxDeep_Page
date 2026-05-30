@@ -5,452 +5,37 @@ import {
   ChevronRight, Check, AlertCircle, Send,
   Edit2, Shield, Lock,
 } from 'lucide-react';
-
-// ─── Static Data ─────────────────────────────────────────────────────────────
-
-const INFRA_OPTIONS = [
-  {
-    id: 'from_scratch',
-    label: 'Automatización Inteligente (Desde Cero)',
-    description: 'No contamos con sistemas propietarios optimizados; buscamos desarrollar flujos de trabajo e infraestructura digital desde su base.',
-    summaryBadge: 'Infraestructura: Desde cero',
-    accent: 'cyan',
-  },
-  {
-    id: 'existing',
-    label: 'Optimización de Procesos (Infraestructura Existente)',
-    description: 'Contamos con software operativo (CRM, ERP o bases de datos) y buscamos integrar capas de IA o automatizar procesos sobre ellos.',
-    summaryBadge: 'Infraestructura: Sistemas existentes',
-    accent: 'violet',
-  },
-];
-
-const SCOPE_OPTIONS = [
-  {
-    id: 'internal_ops',
-    label: 'Operaciones y Procesos Internos',
-    description: 'Reducir tareas repetitivas, procesamiento de documentos o flujos manuales.',
-    summaryBadge: 'Foco: Operaciones',
-  },
-  {
-    id: 'customer_channels',
-    label: 'Atención y Canales de Cara al Cliente',
-    description: 'Automatizar soporte técnico, flujos conversacionales o gestión de requerimientos.',
-    summaryBadge: 'Foco: Clientes',
-  },
-  {
-    id: 'data_analytics',
-    label: 'Análisis de Datos y Reportes',
-    description: 'Centralizar información dispersa para analítica predictiva o toma de decisiones.',
-    summaryBadge: 'Foco: Analítica',
-  },
-];
-
-const STACK_OPTIONS = [
-  {
-    id: 'saas_apis',
-    label: 'SaaS y Nube Comercial',
-    description: 'Utilizamos plataformas modernas con APIs abiertas como Salesforce, HubSpot o SAP.',
-    summaryBadge: 'Stack: SaaS/APIs',
-  },
-  {
-    id: 'on_premise',
-    label: 'Sistemas Legacy o Locales (On-Premise)',
-    description: 'Operamos con bases de datos internas o software cerrado de difícil acceso.',
-    summaryBadge: 'Stack: On-Premise',
-  },
-  {
-    id: 'fragmented',
-    label: 'Ecosistema Fragmentado',
-    description: 'Los datos están dispersos en múltiples herramientas independientes que no se comunican.',
-    summaryBadge: 'Stack: Fragmentado',
-  },
-];
-
-const SCALE_OPTIONS = [
-  {
-    id: 'focalizada',
-    label: 'Flujo Focalizado / Equipos Iniciales',
-    description: 'Procesos de un departamento específico, volúmenes moderados de datos y despliegue directo.',
-    summaryBadge: 'Escala: Focalizada',
-    concurrentUsers: 50,
-    nodeRange: [800, 1500],
-  },
-  {
-    id: 'enterprise',
-    label: 'Despliegue Corporativo / Contenedores',
-    description: 'Alta demanda simultánea, flujos transversales y preferencia por ambientes estandarizados en Docker/Kubernetes.',
-    summaryBadge: 'Escala: Enterprise',
-    concurrentUsers: 250,
-    nodeRange: [1800, 3500],
-  },
-];
-
-const SECURITY_OPTIONS = [
-  {
-    id: 'standard_flex',
-    label: 'Estándar / Flexibilidad Alta',
-    description: 'Podemos operar con modelos comerciales en la nube bajo políticas de privacidad estándar.',
-    summaryBadge: 'Seguridad: Nube Estándar',
-    exceptional: false,
-  },
-  {
-    id: 'strict_private',
-    label: 'Crítico / Restricción Estricta (LGPD/Enterprise)',
-    description: 'Manejamos datos altamente sensibles. Requerimos modelos privados, encriptación avanzada o aislamiento local.',
-    summaryBadge: 'Seguridad: Privada/LGPD',
-    exceptional: true,
-  },
-];
-
-// Maps branch choice to SML IDs from mockData
-const BRANCH_SML_MAP = {
-  internal_ops:      [5],
-  customer_channels: [5],
-  data_analytics:    [4, 7],
-  saas_apis:         [5],
-  on_premise:        [5],
-  fragmented:        [6],
-};
-
-// ─── Decision Logic ───────────────────────────────────────────────────────────
-
-function getBranchChoice(answers) {
-  return answers.infraMode === 'from_scratch' ? answers.scopeFocus : answers.stackComplexity;
-}
-
-function getConcurrentUsers(answers) {
-  const scale = SCALE_OPTIONS.find(o => o.id === answers.scaleEnvironment);
-  return scale?.concurrentUsers ?? 50;
-}
-
-function detectConflicts(answers) {
-  const conflicts = [];
-
-  if (answers.governanceLevel === 'strict_private' && answers.stackComplexity === 'saas_apis') {
-    conflicts.push({
-      id: 'A', severity: 'high',
-      title: 'Restricción estricta de privacidad + Stack SaaS con APIs comerciales',
-      message: 'Un despliegue privado o local con datos críticos limita el uso directo de APIs de terceros en la nube pública.',
-      suggestion: 'Considere conectores controlados en VPC o evalúe flexibilidad estándar si la integración SaaS es indispensable.',
-    });
-  }
-
-  if (answers.governanceLevel === 'strict_private' && answers.stackComplexity === 'fragmented') {
-    conflicts.push({
-      id: 'B', severity: 'medium',
-      title: 'Datos fragmentados + Requisitos de seguridad crítica',
-      message: 'Unificar datos dispersos bajo gobernanza estricta requiere fase de integración y clasificación previa.',
-      suggestion: 'Priorice un inventario de fuentes y un plan de consolidación antes del despliegue del nodo de IA.',
-    });
-  }
-
-  if (answers.infraMode === 'from_scratch' && answers.scopeFocus === 'customer_channels' && answers.governanceLevel === 'strict_private') {
-    conflicts.push({
-      id: 'C', severity: 'medium',
-      title: 'Canales de cliente + Seguridad crítica',
-      message: 'Automatizar atención al cliente con restricciones estrictas implica arquitectura dedicada y latencia controlada.',
-      suggestion: 'Valide volumen de interacciones y políticas de retención antes de dimensionar cómputo.',
-    });
-  }
-
-  return conflicts;
-}
-
-function calculateConfidence(answers, conflicts, maxVisibleStep = 4) {
-  let completed = 0;
-  if (answers.infraMode)          completed++;
-  if (getBranchChoice(answers)) completed++;
-  if (answers.scaleEnvironment) completed++;
-  if (answers.governanceLevel)  completed++;
-
-  const hasHigh   = conflicts.some(c => c.severity === 'high');
-  const hasMedium = conflicts.some(c => c.severity === 'medium');
-
-  if (completed < 3 || hasHigh) return 'low';
-  if (completed < 4 || hasMedium || maxVisibleStep < 4) return 'medium';
-  return 'high';
-}
-
-function buildInferredProfile(answers) {
-  if (
-    !answers.infraMode &&
-    !getBranchChoice(answers) &&
-    !answers.scaleEnvironment &&
-    !answers.governanceLevel
-  ) {
-    return null;
-  }
-
-  const segments = [];
-
-  if (answers.infraMode === 'from_scratch') {
-    segments.push('implementación de IA desde cero');
-  } else if (answers.infraMode === 'existing') {
-    segments.push('integración de IA sobre infraestructura existente');
-  }
-
-  if (answers.infraMode === 'from_scratch') {
-    const scope = SCOPE_OPTIONS.find(o => o.id === answers.scopeFocus);
-    if (scope) segments.push(scope.label.toLowerCase());
-  } else if (answers.infraMode === 'existing') {
-    const stack = STACK_OPTIONS.find(o => o.id === answers.stackComplexity);
-    if (stack) segments.push(stack.label.toLowerCase());
-  }
-
-  if (answers.scaleEnvironment === 'focalizada') {
-    segments.push('escala focalizada por departamento');
-  } else if (answers.scaleEnvironment === 'enterprise') {
-    segments.push('despliegue corporativo con contenedores');
-  }
-
-  if (answers.governanceLevel === 'strict_private') {
-    segments.push('requisitos normativos y de privacidad estrictos (LGPD/enterprise)');
-  } else if (answers.governanceLevel === 'standard_flex') {
-    segments.push('operación con flexibilidad en nube estándar');
-  }
-
-  return `Se detecta un caso corporativo de ${segments.join(' con ')}.`;
-}
-
-function buildChangeReasons(answers) {
-  const reasons = [];
-
-  if (answers.governanceLevel === 'strict_private') {
-    reasons.push('Al seleccionar restricción estricta, el entorno recomendado pasó a despliegue privado o canal dedicado enterprise.');
-  } else if (answers.governanceLevel === 'standard_flex') {
-    reasons.push('Con flexibilidad estándar, el entorno recomendado permite operación en nube comercial con políticas de privacidad regulares.');
-  }
-
-  if (answers.infraMode === 'from_scratch') {
-    reasons.push('La creación desde cero activa diseño de flujos, orquestación y capa de infraestructura digital como base del proyecto.');
-  } else if (answers.infraMode === 'existing') {
-    reasons.push('La infraestructura existente orienta la recomendación hacia integración, conectores y automatización sobre sistemas operativos.');
-  }
-
-  if (answers.scaleEnvironment === 'enterprise') {
-    reasons.push('El despliegue corporativo activa ambientes estandarizados en contenedores y mayor capacidad simultánea.');
-  } else if (answers.scaleEnvironment === 'focalizada') {
-    reasons.push('La escala focalizada permite un despliegue directo acotado a equipos o departamentos iniciales.');
-  }
-
-  if (answers.stackComplexity === 'saas_apis') {
-    reasons.push('El stack SaaS/APIs requiere conectores de integración y gobernanza de acceso a servicios externos.');
-  } else if (answers.stackComplexity === 'on_premise') {
-    reasons.push('Los sistemas on-premise/legacy implican conectividad controlada y posible middleware de acceso a datos.');
-  } else if (answers.stackComplexity === 'fragmented') {
-    reasons.push('Un ecosistema fragmentado requiere capa de consolidación e indexación antes de la inferencia de IA.');
-  }
-
-  if (answers.scopeFocus === 'data_analytics') {
-    reasons.push('El foco analítico prioriza pipelines de datos, reportes y modelos orientados a decisión.');
-  } else if (answers.scopeFocus === 'customer_channels') {
-    reasons.push('Los canales de cliente activan automatización conversacional y triaje de requerimientos.');
-  }
-
-  return reasons;
-}
-
-function buildSimplificationHint(answers) {
-  if (answers.governanceLevel === 'strict_private' && answers.stackComplexity === 'saas_apis') {
-    return 'Evaluar flexibilidad estándar o conectores en VPC reduciría la fricción con integraciones SaaS.';
-  }
-  if (answers.stackComplexity === 'fragmented') {
-    return 'Consolidar fuentes críticas antes del despliegue simplificaría la arquitectura y reduciría costo inicial.';
-  }
-  if (answers.infraMode === 'from_scratch') {
-    return 'Acotar el primer caso de uso operativo aceleraría el time-to-value del despliegue inicial.';
-  }
-  return null;
-}
-
-function buildAssumptionsAndGaps(answers, conflicts, showOutput = false) {
-  const assumptions = [];
-  const missingForProposal = [];
-
-  const users = getConcurrentUsers(answers);
-  assumptions.push(`Se proyectan ~${users} usuarios concurrentes según la escala seleccionada (${answers.scaleEnvironment || 'pendiente'}).`);
-  assumptions.push('Se estiman 20 consultas diarias por usuario y 22 días hábiles al mes para la proyección de costos.');
-
-  if (!answers.scaleEnvironment) {
-    missingForProposal.push('Dimensión operativa y entorno técnico del proyecto.');
-  }
-
-  if (answers.infraMode === 'existing' && answers.stackComplexity === 'fragmented') {
-    missingForProposal.push('Inventario de sistemas fuente y mapa de integración entre herramientas.');
-  }
-
-  if (answers.governanceLevel === 'strict_private') {
-    missingForProposal.push('Validación legal/compliance sobre retención, residencia y clasificación de datos.');
-  }
-
-  if (conflicts.length > 0) {
-    missingForProposal.push('Resolución de conflictos entre stack, integraciones y requisitos de seguridad.');
-  }
-
-  if (showOutput && !getBranchChoice(answers)) {
-    missingForProposal.push('Definición del alcance operativo o complejidad del stack.');
-  }
-
-  return { assumptions, missingForProposal };
-}
-
-function buildRecommendation(answers) {
-  let envLabel = null;
-  let scale    = null;
-  const justification  = [];
-  const businessImpact = [];
-  const changeReasons  = buildChangeReasons(answers);
-  const simplificationHint = buildSimplificationHint(answers);
-  const inferredProfile = buildInferredProfile(answers);
-  const branchId = getBranchChoice(answers);
-
-  const scaleOpt = SCALE_OPTIONS.find(o => o.id === answers.scaleEnvironment);
-
-  if (answers.governanceLevel === 'strict_private') {
-    envLabel = 'Entorno privado enterprise (VPC / aislamiento LGPD)';
-    justification.push('Los requisitos críticos de privacidad exigen modelos privados, encriptación avanzada o aislamiento local.');
-  } else if (answers.governanceLevel === 'standard_flex') {
-    envLabel = 'Nube comercial con políticas estándar';
-    justification.push('La flexibilidad alta permite operar con modelos comerciales bajo políticas de privacidad estándar.');
-  }
-
-  if (scaleOpt) {
-    scale = scaleOpt.label;
-    justification.push(scaleOpt.description);
-  } else if (answers.infraMode === 'from_scratch') {
-    scale = 'Implementación greenfield — diseño de flujos e infraestructura digital';
-  } else if (answers.infraMode === 'existing') {
-    scale = 'Integración sobre stack operativo existente';
-  }
-
-  if (answers.infraMode === 'from_scratch') {
-    justification.push('Al partir desde cero, la arquitectura incluye diseño de procesos, orquestación y base tecnológica.');
-  } else if (answers.infraMode === 'existing') {
-    justification.push('La presencia de CRM/ERP/bases de datos orienta conectores, APIs y capas de automatización sobre sistemas vigentes.');
-  }
-
-  if (answers.scopeFocus === 'internal_ops') {
-    justification.push('El foco operativo interno prioriza automatización documental, RAG y reducción de tareas repetitivas.');
-  }
-  if (answers.scopeFocus === 'customer_channels') {
-    justification.push('Los canales de cliente requieren triaje, respuesta asistida y flujos conversacionales gobernados.');
-  }
-  if (answers.scopeFocus === 'data_analytics') {
-    justification.push('La analítica de datos requiere consolidación, indexación y pipelines orientados a reportes y decisión.');
-  }
-  if (answers.stackComplexity === 'saas_apis') {
-    justification.push('Las integraciones SaaS/APIs requieren conectores seguros hacia Salesforce, HubSpot, SAP u homólogos.');
-  }
-  if (answers.stackComplexity === 'on_premise') {
-    justification.push('Los sistemas legacy/on-premise implican acceso controlado a bases internas y posible middleware.');
-  }
-  if (answers.stackComplexity === 'fragmented') {
-    justification.push('Un ecosistema fragmentado requiere capa de unificación e indexación multi-fuente.');
-  }
-
-  if (answers.governanceLevel === 'strict_private') {
-    businessImpact.push({ label: 'Riesgo evitado', value: 'Reduce exposición legal por procesamiento de datos sensibles fuera de políticas enterprise.' });
-    businessImpact.push({ label: 'Soberanía de datos', value: 'Los datos críticos permanecen bajo control organizacional y normativo.' });
-  }
-  businessImpact.push({ label: 'Predictibilidad de costos', value: 'Tarifa de operación predecible frente a consumo variable de APIs públicas.' });
-  businessImpact.push({ label: 'Autonomía operativa', value: 'Menor dependencia de cambios de política en servicios externos de IA.' });
-
-  const architecture =
-    envLabel && scale ? `${envLabel} — ${scale}`
-    : envLabel        ? envLabel
-    : scale           ? scale
-    : null;
-
-  return {
-    architecture,
-    inferredProfile,
-    justification,
-    changeReasons,
-    simplificationHint,
-    businessImpact,
-    suggestedModelIds: BRANCH_SML_MAP[branchId] || [6],
-  };
-}
-
-function buildFinancialScenario(answers) {
-  const scaleOpt        = SCALE_OPTIONS.find(o => o.id === answers.scaleEnvironment);
-  const users           = scaleOpt?.concurrentUsers ?? 50;
-  const queriesPerUser  = 20;
-  const workingDays     = 22;
-  const dailyQueries    = users * queriesPerUser;
-  const monthlyQueries  = dailyQueries * workingDays;
-  const publicCostMonth = Math.round(monthlyQueries * 0.004);
-  const [nodeMin, nodeMax] = scaleOpt?.nodeRange ?? [800, 1500];
-  const nodeMid = Math.round((nodeMin + nodeMax) / 2);
-
-  let breakEvenMonths = null;
-  if (publicCostMonth >= nodeMid) {
-    breakEvenMonths = 1;
-  } else if (publicCostMonth > 0) {
-    breakEvenMonths = Math.min(36, Math.ceil(nodeMid / publicCostMonth));
-  }
-
-  return {
-    users,
-    queriesPerUser,
-    workingDays,
-    dailyQueries,
-    monthlyQueries,
-    publicCostMonth,
-    nodeMin,
-    nodeMax,
-    nodeMid,
-    breakEvenMonths,
-  };
-}
-
-function buildPayloadFromAnswers(answers, recommendation) {
-  const branchId = getBranchChoice(answers);
-  const infra = INFRA_OPTIONS.find(o => o.id === answers.infraMode);
-  const branchOpt = answers.infraMode === 'from_scratch'
-    ? SCOPE_OPTIONS.find(o => o.id === answers.scopeFocus)
-    : STACK_OPTIONS.find(o => o.id === answers.stackComplexity);
-  const scaleOpt = SCALE_OPTIONS.find(o => o.id === answers.scaleEnvironment);
-  const sec = SECURITY_OPTIONS.find(o => o.id === answers.governanceLevel);
-
-  const useCases = [
-    answers.infraMode,
-    branchId,
-    answers.scaleEnvironment,
-    answers.governanceLevel,
-  ].filter(Boolean);
-  if (answers.scopeFocus === 'customer_channels') useCases.push('external', 'customer');
-  if (answers.scopeFocus === 'internal_ops') useCases.push('docs', 'employees');
-  if (answers.scopeFocus === 'data_analytics') useCases.push('databases', 'analytics');
-  if (answers.stackComplexity === 'saas_apis') useCases.push('apis', 'external');
-  if (answers.stackComplexity === 'on_premise') useCases.push('databases', 'on_premise');
-  if (answers.stackComplexity === 'fragmented') useCases.push('docs', 'databases', 'apis');
-  if (answers.scaleEnvironment === 'enterprise') useCases.push('tool_orchestrator', 'kubernetes');
-  if (answers.scaleEnvironment === 'focalizada') useCases.push('pilot');
-
-  return {
-    problem_description: [
-      `[${answers.infraMode}/${branchId}/${answers.scaleEnvironment}]`,
-      infra?.summaryBadge,
-      branchOpt?.summaryBadge,
-      scaleOpt?.summaryBadge,
-      sec?.summaryBadge,
-    ].filter(Boolean).join(' '),
-    expected_users_concurrent: getConcurrentUsers(answers),
-    data_sensitivity: answers.governanceLevel === 'strict_private' ? 'high' : 'medium',
-    use_cases_priority: [...new Set(useCases)],
-    current_ia_pain_points: recommendation.justification.join(' '),
-  };
-}
-
-function getOutputStatus(confidence, conflicts) {
-  if (confidence === 'low' || conflicts.some(c => c.severity === 'high')) return 'exploratory';
-  if (confidence === 'medium') return 'preliminary';
-  return 'ready';
-}
-
-// ─── Config Maps ──────────────────────────────────────────────────────────────
+import {
+  createInitialState,
+  toLegacyAnswers,
+  selectInfraestructuraFromUi,
+  selectFocoFromUi,
+  selectStackFromUi,
+  selectMadurezFromUi,
+  selectEscalaFromUi,
+  selectGobernanzaFromUi,
+  resetAfterStep,
+  isStepComplete,
+  canShowRecommendation,
+  detectConflicts,
+  calculateConfidence,
+  buildRecommendation,
+  buildFinancialScenario,
+  buildAssumptionsAndGaps,
+  buildPayloadFromState,
+  getOutputStatus,
+  WIZARD_UI_CATALOG,
+  WIZARD_FORM_SECTIONS,
+  STEP_LABELS,
+  getStepAccordionMeta,
+  formatLegacyStepSummary,
+  getStep2OutputLabel,
+  getSensitivityLabel,
+} from '../domain/wizardDiagnostic';
+import {
+  resolveDiagnosticInference,
+  DIAGNOSTIC_REPORT_BODY_SECTIONS,
+} from '../domain/wizardDiagnosticInference';
 
 const CONFIDENCE_CFG = {
   low:    { label: 'Confianza baja',   color: 'text-red-400',     bg: 'bg-red-500/10 border-red-500/30',       dot: 'bg-red-400'     },
@@ -479,119 +64,6 @@ const OUTPUT_STATUS_CFG = {
   },
 };
 
-const STEP_LABELS = {
-  1: 'Infraestructura base',
-  2: 'Enfoque / Stack',
-  3: 'Escala y entorno',
-  4: 'Gobernanza y seguridad',
-};
-
-function isStepComplete(step, answers) {
-  if (step === 1) return !!answers.infraMode;
-  if (step === 2) return !!getBranchChoice(answers);
-  if (step === 3) return !!answers.scaleEnvironment;
-  if (step === 4) return !!answers.governanceLevel;
-  return false;
-}
-
-function resetAnswersAfterStep(answers, step) {
-  const next = { ...answers };
-  if (step < 2) {
-    next.scopeFocus = '';
-    next.stackComplexity = '';
-  }
-  if (step < 3) {
-    next.scaleEnvironment = '';
-  }
-  if (step < 4) {
-    next.governanceLevel = '';
-  }
-  return next;
-}
-
-function getStepAccordionMeta(stepNum, answers) {
-  if (stepNum === 1) {
-    return {
-      label: 'Infraestructura base',
-      heading: '¿Cuál es el estado de la infraestructura donde deseas implementar IA?',
-      description: 'Define si partes desde cero o integras IA sobre sistemas operativos existentes.',
-    };
-  }
-  if (stepNum === 2) {
-    if (answers.infraMode === 'from_scratch') {
-      return {
-        label: 'Enfoque operativo',
-        heading: '¿Cuál es el cuello de botella crítico que requiere automatización inmediata?',
-        description: 'Prioriza el foco operativo del primer despliegue.',
-      };
-    }
-    return {
-      label: 'Complejidad del stack',
-      heading: '¿Cómo interactúa el software actual de tu empresa con tus datos operativos?',
-      description: 'Identifica el patrón de integración predominante en tu organización.',
-    };
-  }
-  if (stepNum === 3) {
-    return {
-      label: 'Escala y entorno',
-      heading: '¿Cuál es la dimensión operativa y el entorno técnico del proyecto?',
-      description: 'Dimensiona volumen, alcance transversal y preferencia de despliegue.',
-    };
-  }
-  return {
-    label: 'Gobernanza y seguridad',
-    heading: '¿Cuáles son los requerimientos normativos y de privacidad para el manejo de tu información?',
-    description: 'Determina el nivel de restricción y cumplimiento requerido.',
-  };
-}
-
-function formatStepValue(step, answers) {
-  if (step === 1) {
-    const infra = INFRA_OPTIONS.find(o => o.id === answers.infraMode);
-    return infra?.summaryBadge ?? '—';
-  }
-  if (step === 2) {
-    if (answers.infraMode === 'from_scratch') {
-      const scope = SCOPE_OPTIONS.find(o => o.id === answers.scopeFocus);
-      return scope?.summaryBadge ?? '—';
-    }
-    if (answers.infraMode === 'existing') {
-      const stack = STACK_OPTIONS.find(o => o.id === answers.stackComplexity);
-      return stack?.summaryBadge ?? '—';
-    }
-    return '—';
-  }
-  if (step === 3) {
-    const scale = SCALE_OPTIONS.find(o => o.id === answers.scaleEnvironment);
-    return scale?.summaryBadge ?? '—';
-  }
-  if (step === 4) {
-    const sec = SECURITY_OPTIONS.find(o => o.id === answers.governanceLevel);
-    return sec?.summaryBadge ?? '—';
-  }
-  return '—';
-}
-
-function getStep2OutputLabel(answers) {
-  return answers.infraMode === 'from_scratch' ? 'Enfoque operativo' : 'Complejidad del stack';
-}
-
-function getSensitivityLabel(governanceLevel) {
-  if (governanceLevel === 'strict_private') return 'Alta (privada / LGPD)';
-  if (governanceLevel === 'standard_flex')  return 'Media (nube estándar)';
-  return '—';
-}
-
-const FORM_SECTIONS = 4;
-
-const initialAnswers = {
-  infraMode:         '',
-  scopeFocus:        '',
-  stackComplexity:   '',
-  scaleEnvironment:  '',
-  governanceLevel:   '',
-};
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const ClientWizard = () => {
@@ -601,29 +73,28 @@ const ClientWizard = () => {
   const [activeStep, setActiveStep]             = useState(1);
   const [maxVisibleStep, setMaxVisibleStep]     = useState(1);
   const [showOutput, setShowOutput]               = useState(false);
-  const [answers, setAnswers]                   = useState(initialAnswers);
+  const [diagnostic, setDiagnostic]             = useState(createInitialState);
+  const answers = useMemo(() => toLegacyAnswers(diagnostic), [diagnostic]);
   const [editingFromOutput, setEditingFromOutput] = useState(null);
   const [submitting, setSubmitting]             = useState(false);
   const [submitError, setSubmitError]           = useState(null);
   const [submitted, setSubmitted]               = useState(false);
 
   // Derived
-  const conflicts       = useMemo(() => detectConflicts(answers), [answers]);
+  const conflicts       = useMemo(() => detectConflicts(diagnostic), [diagnostic]);
   const confidence      = useMemo(
-    () => calculateConfidence(answers, conflicts, maxVisibleStep),
-    [answers, conflicts, maxVisibleStep],
+    () => calculateConfidence(diagnostic, conflicts, maxVisibleStep),
+    [diagnostic, conflicts, maxVisibleStep],
   );
-  const recommendation  = useMemo(() => buildRecommendation(answers), [answers]);
-  const financial       = useMemo(() => buildFinancialScenario(answers), [answers]);
+  const recommendation  = useMemo(() => buildRecommendation(diagnostic), [diagnostic]);
+  const financial       = useMemo(() => buildFinancialScenario(diagnostic), [diagnostic]);
   const outputStatus    = useMemo(() => getOutputStatus(confidence, conflicts), [confidence, conflicts]);
   const assumptionsGaps = useMemo(
-    () => buildAssumptionsAndGaps(answers, conflicts, showOutput),
-    [answers, conflicts, showOutput],
+    () => buildAssumptionsAndGaps(diagnostic, conflicts, showOutput),
+    [diagnostic, conflicts, showOutput],
   );
-
-  // Helpers
-  const setAnswer = useCallback((key, value) =>
-    setAnswers(prev => ({ ...prev, [key]: value })), []);
+  const showRecommendation = useMemo(() => canShowRecommendation(diagnostic), [diagnostic]);
+  const diagnosticInference = useMemo(() => resolveDiagnosticInference(diagnostic), [diagnostic]);
 
   const advanceToStep = useCallback((step) => {
     setActiveStep(step);
@@ -631,57 +102,42 @@ const ClientWizard = () => {
   }, []);
 
   const openStep = useCallback((step) => {
-    setAnswers(prev => resetAnswersAfterStep(prev, step));
+    setDiagnostic(prev => resetAfterStep(prev, step));
     setActiveStep(step);
     setMaxVisibleStep(step);
     setShowOutput(false);
   }, []);
 
-  const canShowRecommendation = useMemo(
-    () =>
-      !!answers.infraMode &&
-      !!getBranchChoice(answers) &&
-      !!answers.scaleEnvironment &&
-      !!answers.governanceLevel,
-    [answers],
-  );
-
   const selectInfraMode = useCallback((id) => {
-    setAnswers(prev => {
-      if (prev.infraMode === id) return prev;
-      return { ...initialAnswers, infraMode: id };
-    });
+    setDiagnostic(prev => selectInfraestructuraFromUi(prev, id));
     advanceToStep(2);
     setShowOutput(false);
     setEditingFromOutput(null);
   }, [advanceToStep]);
 
   const selectScopeFocus = useCallback((id) => {
-    setAnswers(prev => ({
-      ...prev,
-      scopeFocus: id,
-      stackComplexity: '',
-    }));
+    setDiagnostic(prev => selectFocoFromUi(prev, id));
     advanceToStep(3);
   }, [advanceToStep]);
 
   const selectStackComplexity = useCallback((id) => {
-    setAnswers(prev => ({
-      ...prev,
-      stackComplexity: id,
-      scopeFocus: '',
-    }));
+    setDiagnostic(prev => selectStackFromUi(prev, id));
     advanceToStep(3);
   }, [advanceToStep]);
 
-  const selectScaleEnvironment = useCallback((id) => {
-    setAnswer('scaleEnvironment', id);
+  const selectDataMaturity = useCallback((id) => {
+    setDiagnostic(prev => selectMadurezFromUi(prev, id));
     advanceToStep(4);
-  }, [setAnswer, advanceToStep]);
+  }, [advanceToStep]);
+
+  const selectScaleEnvironment = useCallback((id) => {
+    setDiagnostic(prev => selectEscalaFromUi(prev, id));
+    advanceToStep(5);
+  }, [advanceToStep]);
 
   const selectSecurity = useCallback((id) => {
-    setAnswer('governanceLevel', id);
-  }, [setAnswer]);
+    setDiagnostic(prev => selectGobernanzaFromUi(prev, id));
+  }, []);
 
   const goToOutput = () => {
     if (editingFromOutput !== null) setEditingFromOutput(null);
@@ -701,7 +157,7 @@ const ClientWizard = () => {
   const handleSubmit = async () => {
     setSubmitting(true);
     setSubmitError(null);
-    const payload = buildPayloadFromAnswers(answers, recommendation);
+    const payload = buildPayloadFromState(diagnostic, recommendation);
 
     try {
       const res = await fetchWithAuth(`${API_URL}/client-needs`, {
@@ -739,9 +195,9 @@ const ClientWizard = () => {
           {/* Step progress */}
           {!showOutput && (
             <div className="flex items-center gap-1 mb-5" aria-label="Progreso del diagnóstico">
-              {Array.from({ length: FORM_SECTIONS }).map((_, i) => {
+              {Array.from({ length: WIZARD_FORM_SECTIONS }).map((_, i) => {
                 const s = i + 1;
-                const done = s < activeStep || (s <= maxVisibleStep && isStepComplete(s, answers));
+                const done = s < activeStep || (s <= maxVisibleStep && isStepComplete(s, diagnostic));
                 const active = s === activeStep;
                 return (
                   <React.Fragment key={s}>
@@ -755,7 +211,7 @@ const ClientWizard = () => {
                     >
                       {done && !active ? <Check className="w-3.5 h-3.5" /> : s}
                     </div>
-                    {i < FORM_SECTIONS - 1 && (
+                    {i < WIZARD_FORM_SECTIONS - 1 && (
                       <div className={`flex-1 h-px ${done ? 'bg-[#06b6d4]/60' : 'bg-slate-800'}`} />
                     )}
                   </React.Fragment>
@@ -768,7 +224,7 @@ const ClientWizard = () => {
           {editingFromOutput !== null && (
             <div className="flex flex-wrap items-center gap-2 mb-4 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
               <Edit2 className="h-3.5 w-3.5 shrink-0" />
-              Editando: <span className="font-medium">{getStepAccordionMeta(editingFromOutput, answers).label}</span>
+              Editando: <span className="font-medium">{getStepAccordionMeta(editingFromOutput, diagnostic).label}</span>
               <span className="text-amber-500">— el resto de tus respuestas se conservan.</span>
               <button
                 type="button"
@@ -785,11 +241,11 @@ const ClientWizard = () => {
               className="bg-slate-950 border border-slate-800/80 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden"
               role="presentation"
             >
-              {[1, 2, 3, 4].map(stepNum => {
+              {[1, 2, 3, 4, 5].map(stepNum => {
                 if (stepNum > maxVisibleStep) return null;
-                const cfg = getStepAccordionMeta(stepNum, answers);
+                const cfg = getStepAccordionMeta(stepNum, diagnostic);
                 const isActive = activeStep === stepNum;
-                const isCollapsed = !isActive && isStepComplete(stepNum, answers);
+                const isCollapsed = !isActive && isStepComplete(stepNum, diagnostic);
 
                 return (
                   <WizardAccordionStep
@@ -798,7 +254,7 @@ const ClientWizard = () => {
                     label={cfg.label}
                     heading={cfg.heading}
                     description={cfg.description}
-                    summary={formatStepValue(stepNum, answers)}
+                    summary={formatLegacyStepSummary(stepNum, answers)}
                     isActive={isActive}
                     isCollapsed={isCollapsed}
                     onOpen={() => openStep(stepNum)}
@@ -809,7 +265,7 @@ const ClientWizard = () => {
                         aria-label="Infraestructura base"
                         className="grid grid-cols-1 md:grid-cols-2 gap-4"
                       >
-                        {INFRA_OPTIONS.map(opt => (
+                        {WIZARD_UI_CATALOG.infra.map(opt => (
                           <IntentCard
                             key={opt.id}
                             option={opt}
@@ -821,9 +277,9 @@ const ClientWizard = () => {
                       </div>
                     )}
 
-                    {stepNum === 2 && answers.infraMode === 'from_scratch' && (
+                    {stepNum === 2 && diagnostic.phase === 'desde_cero' && (
                       <div className="grid grid-cols-1 gap-3">
-                        {SCOPE_OPTIONS.map(opt => (
+                        {WIZARD_UI_CATALOG.foco.map(opt => (
                           <WizardOptionButton
                             key={opt.id}
                             option={opt}
@@ -834,9 +290,9 @@ const ClientWizard = () => {
                       </div>
                     )}
 
-                    {stepNum === 2 && answers.infraMode === 'existing' && (
+                    {stepNum === 2 && diagnostic.phase === 'sistemas_existentes' && (
                       <div className="grid grid-cols-1 gap-3">
-                        {STACK_OPTIONS.map(opt => (
+                        {WIZARD_UI_CATALOG.stack.map(opt => (
                           <WizardOptionButton
                             key={opt.id}
                             option={opt}
@@ -849,7 +305,20 @@ const ClientWizard = () => {
 
                     {stepNum === 3 && (
                       <div className="grid grid-cols-1 gap-3">
-                        {SCALE_OPTIONS.map(opt => (
+                        {WIZARD_UI_CATALOG.madurez.map(opt => (
+                          <WizardOptionButton
+                            key={opt.id}
+                            option={opt}
+                            selected={answers.dataMaturity === opt.id}
+                            onSelect={selectDataMaturity}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {stepNum === 4 && (
+                      <div className="grid grid-cols-1 gap-3">
+                        {WIZARD_UI_CATALOG.escala.map(opt => (
                           <WizardOptionButton
                             key={opt.id}
                             option={opt}
@@ -860,9 +329,9 @@ const ClientWizard = () => {
                       </div>
                     )}
 
-                    {stepNum === 4 && (
+                    {stepNum === 5 && (
                       <div className="space-y-3">
-                        {SECURITY_OPTIONS.map(opt => {
+                        {WIZARD_UI_CATALOG.gobernanza.map(opt => {
                           const selected = answers.governanceLevel === opt.id;
                           return (
                             <button
@@ -906,7 +375,7 @@ const ClientWizard = () => {
                 );
               })}
 
-              {canShowRecommendation && activeStep === 4 && (
+              {showRecommendation && activeStep === 5 && (
                 <div className="px-5 sm:px-6 pb-5 sm:pb-6 pt-1 border-t border-slate-800/60">
                   <button
                     type="button"
@@ -921,7 +390,9 @@ const ClientWizard = () => {
             </div>
           ) : (
             <OutputPanel
+              diagnostic={diagnostic}
               answers={answers}
+              inference={diagnosticInference}
               recommendation={recommendation}
               financial={financial}
               outputStatus={outputStatus}
@@ -1106,7 +577,8 @@ const IntentCard = ({ option, selected, dimmed, onSelect }) => {
 
 const ReasoningPanel = ({ answers, recommendation, conflicts, confidence, showOutput, assumptionsGaps }) => {
   const cfg = CONFIDENCE_CFG[confidence];
-  const hasAny = answers.infraMode || getBranchChoice(answers) || answers.scaleEnvironment || answers.governanceLevel;
+  const hasAny = !!answers.infraMode || !!answers.scopeFocus || !!answers.stackComplexity
+    || !!answers.dataMaturity || !!answers.scaleEnvironment || !!answers.governanceLevel;
 
   return (
     <div className="bg-[#0b1426] border border-[#1e3a8a]/40 rounded-2xl p-5 space-y-5 sticky top-4">
@@ -1203,7 +675,7 @@ const ReasoningPanel = ({ answers, recommendation, conflicts, confidence, showOu
 };
 
 const OutputPanel = ({
-  answers, recommendation, financial, outputStatus,
+  diagnostic, answers, inference, recommendation, financial, outputStatus,
   conflicts, confidence, assumptionsGaps, onEditStep,
   onSubmit, submitting, submitted, submitError, onDashboard,
 }) => {
@@ -1235,11 +707,11 @@ const OutputPanel = ({
           <p className="text-sm text-slate-300 mb-3 leading-relaxed">{recommendation.inferredProfile}</p>
         )}
         <div className="space-y-0 divide-y divide-slate-800">
-          {[1, 2, 3, 4].map(s => (
+          {[1, 2, 3, 4, 5].map(s => (
             <EditableRow
               key={s}
-              label={s === 2 ? getStep2OutputLabel(answers) : STEP_LABELS[s]}
-              value={formatStepValue(s, answers)}
+              label={s === 2 ? getStep2OutputLabel(diagnostic) : STEP_LABELS[s]}
+              value={formatLegacyStepSummary(s, answers)}
               onEdit={() => onEditStep(s)}
             />
           ))}
@@ -1249,6 +721,8 @@ const OutputPanel = ({
           <span className="text-slate-300">{getSensitivityLabel(answers.governanceLevel)}</span>
         </div>
       </OutputSection>
+
+      <DiagnosticReportPanel inference={inference} />
 
       {/* 2. Arquitectura sugerida */}
       <OutputSection title="2. Arquitectura sugerida">
@@ -1367,6 +841,7 @@ const OutputPanel = ({
 
       {/* 6. Siguiente paso */}
       <OutputSection title="6. Siguiente paso">
+        <p className="text-xs text-slate-300 mb-4 leading-relaxed">{inference.report.nextStep}</p>
         <p className="text-xs text-slate-500 mb-4">
           Guarde el diagnóstico para que el equipo ProxDeep elabore una propuesta comercial formal
           basada en este perfil y arquitectura sugerida.
@@ -1398,6 +873,23 @@ const OutputPanel = ({
         )}
       </OutputSection>
     </div>
+  );
+};
+
+const DiagnosticReportPanel = ({ inference }) => {
+  const { report } = inference;
+  return (
+    <OutputSection title="Informe ProxDeep">
+      <h4 className="text-sm font-semibold text-white mb-4 leading-snug">{report.title}</h4>
+      <div className="space-y-4">
+        {DIAGNOSTIC_REPORT_BODY_SECTIONS.map(({ key, title }) => (
+          <div key={key}>
+            <p className="text-xs font-semibold text-slate-400 mb-1.5">{title}</p>
+            <p className="text-xs text-slate-300 leading-relaxed">{report[key]}</p>
+          </div>
+        ))}
+      </div>
+    </OutputSection>
   );
 };
 

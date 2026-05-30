@@ -32,17 +32,17 @@ function validatePayload(payload) {
 function buildSamplePayload(branch) {
   const samples = {
     A: {
-      problem_description: '[from_scratch/internal_ops/focalizada] Infraestructura: Desde cero Foco: Operaciones Escala: Focalizada Seguridad: Nube Estándar',
+      problem_description: '[from_scratch/internal_ops/production_ready/focalizada] Infraestructura: Creación desde cero Foco: NLP & Documentos Datos: Producción Escala: Focalizada Seguridad: Nube Estándar',
       expected_users_concurrent: 50,
       data_sensitivity: 'medium',
-      use_cases_priority: ['from_scratch', 'internal_ops', 'focalizada', 'standard_flex', 'docs', 'employees'],
+      use_cases_priority: ['from_scratch', 'internal_ops', 'production_ready', 'focalizada', 'standard_flex', 'docs', 'employees', 'production_data', 'pilot'],
       current_ia_pain_points: 'Justificación de prueba rama A.',
     },
     B: {
-      problem_description: '[existing/saas_apis/enterprise] Infraestructura: Sistemas existentes Stack: SaaS/APIs Escala: Enterprise Seguridad: Privada/LGPD',
+      problem_description: '[existing/saas_apis/centralized_dirty/enterprise] Infraestructura: Sistemas existentes Stack: SaaS/APIs Datos: Centralizados Escala: Enterprise Seguridad: Privada/LGPD',
       expected_users_concurrent: 250,
       data_sensitivity: 'high',
-      use_cases_priority: ['existing', 'saas_apis', 'enterprise', 'strict_private', 'apis', 'external', 'tool_orchestrator', 'kubernetes'],
+      use_cases_priority: ['existing', 'saas_apis', 'centralized_dirty', 'enterprise', 'strict_private', 'apis', 'external', 'data_normalization', 'data_governance', 'tool_orchestrator', 'kubernetes'],
       current_ia_pain_points: 'Justificación de prueba rama B.',
     },
   };
