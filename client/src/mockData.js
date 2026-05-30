@@ -69,10 +69,25 @@ export const MOCK_PROPOSAL = {
   id: 1,
   client_need_id: 1,
   status: 'pending',
-  recommended_nodo_type: 'Sovereign',
-  estimated_fixed_cost_usd: '12500',
+  recommended_nodo_type: 'Enterprise',
+  estimated_fixed_cost_usd: '4200',
   estimated_amortization_months: 6,
   recommended_sml_ids: JSON.stringify([1, 2]),
-  justification_text: 'Para soportar 50 usuarios concurrentes analizando contratos de alta confidencialidad, se recomienda el Nodo Sovereign con aislamiento VPC dedicado...',
+  proposal_details: `Arquitectura Propuesta
+
+Se propone desplegar un Nodo ProxDeep Enterprise en infraestructura dedicada para Acme Corp. El nodo ejecutará dos SMLs optimizados: **Redactor de Contratos Legales** para revisión automatizada y **Extractor de Entidades Regulatorias** para extracción de cláusulas críticas.
+
+Infraestructura Asignada
+
+- **GPUs dedicadas**: 1× NVIDIA L4/A10G (24GB VRAM)
+- **Usuarios concurrentes**: 50
+- **Latencia garantizada**: <150ms en inferencia local
+- **Cifrado**: AES-256 en tránsito y reposo, TLS 1.3
+
+Modelo Económico
+
+- **Tarifa fija anual**: USD 4,200 (sin costo variable por token)
+- **Amortización estimada**: 6 meses
+- **Predictibilidad**: costo operativo estable vs APIs públicas por consumo`,
   created_at: new Date().toISOString(),
 };

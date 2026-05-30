@@ -8,3 +8,5 @@ venv/
 proxdeep.tar.gz
 aws-key.pem
 .DS_Store
+client/dist/
+dist/

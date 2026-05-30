@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContextDemo';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import FloatingBot from './components/FloatingBot';

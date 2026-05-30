@@ -4,8 +4,14 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host",
+    "dev": "vite --host --mode demo",
     "build": "vite build",
+    "verify:wizard": "node scripts/verify-wizard-4step-logic.mjs",
+    "verify:wizard:domain": "npx tsx scripts/verify-wizard-domain.ts",
+    "verify:wizard:contract": "node scripts/verify-wizard-payload-contract.mjs",
+    "verify:wizard:e2e": "node scripts/e2e-wizard-4step.mjs",
+    "verify:all": "npm run typecheck && npm run verify:wizard:domain && npm run verify:wizard && npm run verify:wizard:contract && npm run verify:wizard:e2e",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
@@ -20,8 +26,15 @@
     "@types/react-dom": "^18.2.22",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.19",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.34.1",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.6",
+    "playwright": "^1.52.0",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.3",
+    "tsx": "^4.22.3",
+    "typescript": "^5.9.3",
     "vite": "^5.2.11"
   }
 }

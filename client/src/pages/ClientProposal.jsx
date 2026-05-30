@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Check, X, Cpu, AlertCircle, Users, ShieldCheck, Server, Database, TrendingUp, Cloud, Zap } from 'lucide-react';
+import { ArrowLeft, Check, Cpu, AlertCircle, Users, ShieldCheck, Server, Database, TrendingUp, Cloud, Zap } from 'lucide-react';
+import { buildCloudRoiComparison } from '../utils/cloudRoi';
 
 const ClientProposal = () => {
   const { id } = useParams();
@@ -93,27 +94,8 @@ const ClientProposal = () => {
   const costPerUser = (proxdeepCost / users).toFixed(2);
   const totalCost = proxdeepCost.toLocaleString('en-US', { minimumFractionDigits: 2 });
 
-  // ======================================================
-  // CLOUD COST ANALYSIS (Real AWS/Azure pricing — 2025)
-  // ======================================================
-  const gpusNeeded = Math.max(1, Math.ceil(users / 50));
-
-  // AWS g5.xlarge = 1x NVIDIA A10G (24GB VRAM) — $1.006/hr on-demand, ~$0.60/hr reserved (1yr)
-  const awsOnDemandAnnual  = Math.round(gpusNeeded * 1.006 * 8760);
-  const awsReservedAnnual  = Math.round(gpusNeeded * 0.60  * 8760);
-
-  // Azure NCas_T4_v3 = 1x Tesla T4 (16GB) — $0.752/hr  |  NC24ads_A100_v4 = $3.67/hr
-  const azureT4Annual      = Math.round(gpusNeeded * 0.752 * 8760);
-  const azureA100Annual    = Math.round(Math.ceil(gpusNeeded / 2) * 3.67 * 8760); // A100 packs 80GB so fewer needed
-
-  // OpenAI API equivalent: 500K tokens/user/month × GPT-4o ($15/1M out)
-  const openaiAnnual = Math.round(users * 500_000 * 12 * (15 / 1_000_000));
-
-  // Best cloud alternative (1-yr AWS Reserved)
-  const bestCloudAlternative = awsReservedAnnual;
-  const savingsVsBestCloud   = Math.round(((bestCloudAlternative - proxdeepCost) / bestCloudAlternative) * 100);
-  const savingsVsOpenAI      = Math.round(((openaiAnnual - proxdeepCost) / openaiAnnual) * 100);
-  const annualSavingsUSD     = bestCloudAlternative - proxdeepCost;
+  const roi = buildCloudRoiComparison(users, proxdeepCost);
+  const proposalDetails = proposal.proposal_details || proposal.justification_text || '';
 
 
   const statusBadge = {
@@ -227,9 +209,9 @@ const ClientProposal = () => {
               <Database className="h-5 w-5 text-[#06b6d4]" /> Detalles de la Arquitectura Propuesta
             </h2>
             <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-p:text-slate-300 prose-strong:text-[#06b6d4] prose-li:text-slate-300">
-              {proposal.proposal_details.split('\\n\\n').map((block, idx) => (
+              {proposalDetails.split(/\n{2,}/).map((block, idx) => (
                 <div key={idx} className="mb-6 last:mb-0">
-                  {block.split('\\n').map((line, i) => (
+                  {block.split('\n').map((line, i) => (
                     <p key={i} className={`${line.includes(':') && !line.includes('- **') && i===0 ? 'font-bold text-white text-base mb-2 border-b border-[#1e3a8a]/30 pb-2' : 'mb-1'}`}>
                       {line.startsWith('- **') ? (
                         <span dangerouslySetInnerHTML={{__html: line.replace(/\*\*(.*?)\*\*/g, '<strong class="text-[#06b6d4]">$1</strong>')}} />
@@ -250,59 +232,51 @@ const ClientProposal = () => {
               <h2 className="text-lg font-bold text-white">Análisis ROI vs Alternativas Cloud</h2>
             </div>
             <p className="text-xs text-slate-500 mb-5">
-              Costos reales anuales para {gpusNeeded} GPU(s) NVIDIA A10G necesarias para {users.toLocaleString()} usuarios concurrentes.
+              Costos anuales de referencia para {roi.gpusNeeded} GPU(s) y {users.toLocaleString()} usuarios concurrentes. ProxDeep aparece con la tarifa fija anual contratada.
             </p>
 
             {/* Comparison bars */}
             <div className="space-y-3 mb-6">
-              {(() => {
-                const items = [
-                  { label: 'AWS On-Demand (g5.xlarge)', sublabel: `${gpusNeeded}x NVIDIA A10G — $1.006/hr`, annual: awsOnDemandAnnual, color: 'bg-orange-500', badge: 'orange' },
-                  { label: 'AWS Reserved 1 año (g5.xlarge)', sublabel: `${gpusNeeded}x NVIDIA A10G — $0.60/hr`, annual: awsReservedAnnual, color: 'bg-yellow-500', badge: 'yellow' },
-                  { label: 'Azure NC T4 v3 (on-demand)', sublabel: `${gpusNeeded}x Tesla T4 — $0.752/hr`, annual: azureT4Annual, color: 'bg-blue-500', badge: 'blue' },
-                  { label: 'Azure A100 v4 (on-demand)', sublabel: `${Math.ceil(gpusNeeded/2)}x NVIDIA A100 — $3.67/hr`, annual: azureA100Annual, color: 'bg-indigo-500', badge: 'indigo' },
-                  { label: 'OpenAI API (GPT-4o)', sublabel: '500K tokens/usuario/mes × $15/1M tokens', annual: openaiAnnual, color: 'bg-purple-500', badge: 'purple' },
-                  { label: 'ProxDeep Nodo Soberano', sublabel: `Incluye ${gpusNeeded} GPUs + plataforma + SMLs + soporte`, annual: proxdeepCost, color: 'bg-emerald-500', badge: 'emerald', highlight: true },
-                ];
-                const maxVal = Math.max(...items.map(i => i.annual), 1);
-                return items.map(({ label, sublabel, annual, color, highlight }) => {
-                  const pct = Math.max(4, Math.round((annual / maxVal) * 100));
-                  return (
-                    <div key={label} className={`p-3 rounded-xl ${highlight ? 'bg-emerald-900/20 border border-emerald-700/40' : 'bg-[#0b1426]/80 border border-[#1e3a8a]/30'}`}>
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <p className={`text-sm font-bold ${highlight ? 'text-emerald-400' : 'text-white'}`}>{label}</p>
-                          <p className="text-[11px] text-slate-500 mt-0.5">{sublabel}</p>
-                        </div>
-                        <div className="text-right shrink-0 ml-4">
-                          <p className={`text-base font-bold ${highlight ? 'text-emerald-400' : 'text-white'}`}>
-                            ${annual.toLocaleString('en-US')}
-                          </p>
-                          <p className="text-[10px] text-slate-500">USD/año</p>
-                        </div>
+              {roi.chartItems.map(({ label, sublabel, annual, highlight }) => {
+                const pct = Math.max(4, Math.round((annual / roi.maxVal) * 100));
+                const color = highlight ? 'bg-emerald-500' : 'bg-slate-500';
+                return (
+                  <div key={label} className={`p-3 rounded-xl ${highlight ? 'bg-emerald-900/20 border border-emerald-700/40' : 'bg-[#0b1426]/80 border border-[#1e3a8a]/30'}`}>
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className={`text-sm font-bold ${highlight ? 'text-emerald-400' : 'text-white'}`}>
+                          {label}{highlight ? ' — menor costo' : ''}
+                        </p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">{sublabel}</p>
                       </div>
-                      <div className="w-full bg-slate-800 rounded-full h-1.5">
-                        <div className={`${color} h-1.5 rounded-full transition-all duration-700`} style={{ width: `${pct}%` }}></div>
+                      <div className="text-right shrink-0 ml-4">
+                        <p className={`text-base font-bold ${highlight ? 'text-emerald-400' : 'text-white'}`}>
+                          ${annual.toLocaleString('en-US')}
+                        </p>
+                        <p className="text-[10px] text-slate-500">USD/año</p>
                       </div>
                     </div>
-                  );
-                });
-              })()}
+                    <div className="w-full bg-slate-800 rounded-full h-1.5">
+                      <div className={`${color} h-1.5 rounded-full transition-all duration-700`} style={{ width: `${pct}%` }}></div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Savings summary */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-emerald-900/20 border border-emerald-700/40 rounded-xl p-4 text-center">
                 <Zap className="h-5 w-5 text-emerald-400 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-emerald-400">{savingsVsBestCloud}%</p>
-                <p className="text-xs text-slate-400 mt-1">Ahorro vs AWS Reserved (mejor opción cloud)</p>
+                <p className="text-2xl font-bold text-emerald-400">{roi.savingsVsBestCloud}%</p>
+                <p className="text-xs text-slate-400 mt-1">Ahorro vs mejor alternativa cloud</p>
                 <p className="text-[11px] text-emerald-500 font-bold mt-1">
-                  +${annualSavingsUSD.toLocaleString('en-US')} USD recuperados al año
+                  +${roi.annualSavingsUSD.toLocaleString('en-US')} USD recuperados al año
                 </p>
               </div>
               <div className="bg-purple-900/20 border border-purple-700/40 rounded-xl p-4 text-center">
                 <Cloud className="h-5 w-5 text-purple-400 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-purple-400">{savingsVsOpenAI > 0 ? savingsVsOpenAI : 0}%</p>
+                <p className="text-2xl font-bold text-purple-400">{roi.savingsVsOpenAI > 0 ? roi.savingsVsOpenAI : 0}%</p>
                 <p className="text-xs text-slate-400 mt-1">Ahorro vs OpenAI API (GPT-4o)</p>
                 <p className="text-[11px] text-purple-400 font-bold mt-1">
                   Sin "Impuesto al Éxito" por tokens
