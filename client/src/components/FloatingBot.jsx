@@ -12,6 +12,35 @@ const FloatingBot = () => {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
+  // Dragging state
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const offsetRef = useRef({ x: 0, y: 0 });
+
+  const handlePointerDown = (e) => {
+    // Only allow dragging from the header area
+    setIsDragging(true);
+    offsetRef.current = {
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    };
+    e.target.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e) => {
+    if (isDragging) {
+      setPosition({
+        x: e.clientX - offsetRef.current.x,
+        y: e.clientY - offsetRef.current.y
+      });
+    }
+  };
+
+  const handlePointerUp = (e) => {
+    setIsDragging(false);
+    e.target.releasePointerCapture(e.pointerId);
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -66,7 +95,8 @@ const FloatingBot = () => {
       </button>
 
       {/* Ventana de Chat — ocupa casi toda la pantalla en móvil */}
-      <div className={`fixed z-50 transition-all duration-300 origin-bottom-right
+      <div 
+        className={`fixed z-50 transition-all duration-300 origin-bottom-right
         bottom-0 right-0 left-0 sm:bottom-6 sm:right-6 sm:left-auto
         w-full sm:w-80 md:w-96
         h-[80vh] sm:h-[500px] sm:max-h-[80vh]
@@ -75,10 +105,17 @@ const FloatingBot = () => {
         shadow-[0_-4px_40px_rgba(0,0,0,0.5)] sm:shadow-[0_10px_40px_rgba(0,0,0,0.5)]
         flex flex-col
         ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none'}`}
+        style={isOpen && position.x !== 0 ? { transform: `translate(${position.x}px, ${position.y}px)`, transition: isDragging ? 'none' : 'transform 0.3s' } : {}}
       >
 
-        {/* Cabecera */}
-        <div className="p-3 sm:p-4 bg-[#0a0a0a] border-b border-slate-800 rounded-t-2xl flex justify-between items-center shrink-0">
+        {/* Cabecera (Draggable) */}
+        <div 
+          className="p-3 sm:p-4 bg-[#0a0a0a] border-b border-slate-800 rounded-t-2xl flex justify-between items-center shrink-0 cursor-move"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+        >
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="p-1.5 sm:p-2 bg-emerald-950/30 rounded-full border border-emerald-900/50">
               <Bot className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400" />

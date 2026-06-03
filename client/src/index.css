@@ -54,8 +54,12 @@
   body {
     background-color: #030712;
     color: #f8fafc;
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Montserrat', sans-serif;
     overflow-x: hidden;
+  }
+  
+  h1, h2, h3, h4, h5, h6, .font-outfit {
+    font-family: 'Playfair Display', serif;
   }
 }
 

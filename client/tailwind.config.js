@@ -15,7 +15,9 @@ export default {
         brandAccent: '#0ea5e9', 
       },
       fontFamily: {
-        sans: ['Outfit', 'Inter', 'sans-serif'],
+        sans: ['Montserrat', 'sans-serif'],
+        outfit: ['"Playfair Display"', 'serif'],
+        serif: ['"Playfair Display"', 'serif'],
       },
       boxShadow: {
         glow: '0 0 20px rgba(6, 182, 212, 0.2)', 

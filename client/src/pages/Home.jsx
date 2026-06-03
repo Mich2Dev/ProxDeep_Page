@@ -260,16 +260,16 @@ const Home = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8 max-w-lg lg:max-w-none mx-auto">
             {[
-              { icon: <Eye className="w-5 h-5 md:w-5 md:h-5 text-slate-300" />, title: "Fuga de Secretos (IP)", text: "Las preguntas que sus empleados le hacen a una IA pública quedan registradas en bases de datos externas imposibles de borrar." },
-              { icon: <Scale className="w-5 h-5 md:w-5 md:h-5 text-slate-300" />, title: "Riesgo Legal / Multas", text: "Si su empresa maneja datos de clientes, enviarlos a un país distinto para procesar IA viola normativas estrictas (GDPR, financieras)." },
-              { icon: <TrendingDown className="w-5 h-5 md:w-5 md:h-5 text-slate-300" />, title: "Costos Descontrolados", text: "La IA pública cobra por uso. Si mil empleados consultan manuales todos los días, su factura de tecnología explotará a fin de mes." },
+              { icon: <Eye className="w-5 h-5 lg:w-5 lg:h-5 text-slate-300" />, title: "Fuga de Secretos (IP)", text: "Las preguntas que sus empleados le hacen a una IA pública quedan registradas en bases de datos externas imposibles de borrar." },
+              { icon: <Scale className="w-5 h-5 lg:w-5 lg:h-5 text-slate-300" />, title: "Riesgo Legal / Multas", text: "Si su empresa maneja datos de clientes, enviarlos a un país distinto para procesar IA viola normativas estrictas (GDPR, financieras)." },
+              { icon: <TrendingDown className="w-5 h-5 lg:w-5 lg:h-5 text-slate-300" />, title: "Costos Descontrolados", text: "La IA pública cobra por uso. Si mil empleados consultan manuales todos los días, su factura de tecnología explotará a fin de mes." },
             ].map((item, i) => (
-              <div key={i} className="bg-[#0a0a0a] border border-slate-800 rounded-2xl md:rounded-3xl p-6 md:p-8 hover:border-slate-700 transition-colors duration-500 flex flex-col sm:block overflow-hidden">
-                <div className="flex items-center gap-4 mb-4 md:mb-5">
-                  <div className="p-2.5 md:p-3 rounded-xl bg-[#111] border border-slate-800 shadow-inner shrink-0">{item.icon}</div>
-                  <h3 className="font-medium text-white text-base md:text-[17px] leading-tight font-outfit break-words">{item.title}</h3>
+              <div key={i} className="bg-[#0a0a0a] border border-slate-800 rounded-2xl lg:rounded-3xl p-6 lg:p-8 hover:border-slate-700 transition-colors duration-500 flex flex-col sm:block overflow-hidden">
+                <div className="flex items-center gap-4 mb-4 lg:mb-5">
+                  <div className="p-2.5 lg:p-3 rounded-xl bg-[#111] border border-slate-800 shadow-inner shrink-0">{item.icon}</div>
+                  <h3 className="font-medium text-white text-base lg:text-[17px] leading-tight font-outfit break-words">{item.title}</h3>
                 </div>
                 <p className="text-slate-500 text-sm leading-relaxed font-light break-words">{item.text}</p>
               </div>
@@ -287,9 +287,9 @@ const Home = () => {
         {featureHighlights.map((feature, idx) => {
           const isRight = feature.pattern === 'right';
           const accentMap = { 
-            slate: { border: 'border-slate-700/50', bg: 'bg-slate-900/30', text: 'text-slate-300', badge: 'bg-slate-800 border-slate-700 text-slate-300', icon: 'bg-slate-800 border-slate-700', glow: 'shadow-[0_0_30px_rgba(255,255,255,0.02)]' }, 
-            emerald: { border: 'border-emerald-900/50', bg: 'bg-emerald-950/10', text: 'text-emerald-400', badge: 'bg-emerald-950/40 border-emerald-900/50 text-emerald-400', icon: 'bg-emerald-950/50 border-emerald-900/50', glow: 'shadow-[0_0_30px_rgba(16,185,129,0.05)]' }, 
-            cyan: { border: 'border-cyan-900/50', bg: 'bg-cyan-950/10', text: 'text-cyan-400', badge: 'bg-cyan-950/40 border-cyan-900/50 text-cyan-400', icon: 'bg-cyan-950/50 border-cyan-900/50', glow: 'shadow-[0_0_30px_rgba(6,182,212,0.05)]' } 
+            slate: { border: 'border-slate-700/50', bg: 'bg-slate-900/30', text: 'text-slate-300', badge: 'bg-slate-800 border-slate-700 text-slate-300', icon: 'bg-slate-800 border-slate-700', glow: 'shadow-[0_0_30px_rgba(255,255,255,0.02)]', bgGradient: 'from-slate-500/20 via-transparent to-transparent' }, 
+            emerald: { border: 'border-emerald-900/50', bg: 'bg-emerald-950/10', text: 'text-emerald-400', badge: 'bg-emerald-950/40 border-emerald-900/50 text-emerald-400', icon: 'bg-emerald-950/50 border-emerald-900/50', glow: 'shadow-[0_0_30px_rgba(16,185,129,0.05)]', bgGradient: 'from-emerald-500/20 via-transparent to-transparent' }, 
+            cyan: { border: 'border-cyan-900/50', bg: 'bg-cyan-950/10', text: 'text-cyan-400', badge: 'bg-cyan-950/40 border-cyan-900/50 text-cyan-400', icon: 'bg-cyan-950/50 border-cyan-900/50', glow: 'shadow-[0_0_30px_rgba(6,182,212,0.05)]', bgGradient: 'from-cyan-500/20 via-transparent to-transparent' } 
           };
           const c = accentMap[feature.accentColor];
           return (
@@ -321,34 +321,53 @@ const Home = () => {
                     </div>
                   </div>
 
-                  {/* Visual Side */}
-                  <div className="w-full lg:w-1/2">
-                    <div className={`relative rounded-3xl border ${c.border} ${c.bg} p-6 sm:p-12 overflow-hidden ${c.glow} backdrop-blur-sm`}>
-                      <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%,transparent_100%)] bg-[length:4px_4px]"></div>
-                      
-                      <div className={`w-12 h-12 sm:w-20 sm:h-20 rounded-2xl border ${c.icon} flex items-center justify-center mb-6 sm:mb-10 shadow-inner`}>
-                        {feature.icon}
+                  {/* Visual Side Premium Update */}
+                  <div className="w-full lg:w-1/2 relative group perspective-1000">
+                    <div className={`absolute -inset-1 bg-gradient-to-br ${c.bgGradient} rounded-[2.5rem] blur-2xl opacity-40 group-hover:opacity-70 transition-opacity duration-700`}></div>
+                    
+                    <div className={`relative rounded-3xl border ${c.border} bg-[#070707]/90 p-6 sm:p-10 overflow-hidden ${c.glow} backdrop-blur-xl transform transition-all duration-700 group-hover:scale-[1.02] shadow-2xl`}>
+                      {/* Animated Background Mesh */}
+                      <div className={`absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(ellipse_at_center,white_1px,transparent_1px)] bg-[length:24px_24px] ${c.text}`}></div>
+                      <div className={`absolute -top-24 -right-24 w-48 h-48 rounded-full blur-3xl opacity-20 ${c.text.replace('text-', 'bg-')} group-hover:opacity-40 transition-opacity duration-700`}></div>
+
+                      {/* Header / Top Element */}
+                      <div className="flex justify-between items-start mb-8 sm:mb-12 relative z-10">
+                        <div className={`w-14 h-14 sm:w-20 sm:h-20 rounded-2xl border ${c.icon} flex items-center justify-center shadow-inner relative group-hover:shadow-[0_0_20px_currentColor] transition-all duration-500 ${c.text}`}>
+                          <div className={`absolute inset-0 rounded-2xl border ${c.border} scale-110 opacity-30 group-hover:scale-125 group-hover:opacity-0 transition-all duration-700`}></div>
+                          <div className="relative z-10 scale-90 sm:scale-100">{feature.icon}</div>
+                        </div>
+                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${c.border} bg-black/50 backdrop-blur-md`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${c.text.replace('text-', 'bg-')} animate-pulse`}></span>
+                          <span className="text-[9px] sm:text-[10px] text-slate-400 font-mono uppercase tracking-widest">En Línea</span>
+                        </div>
                       </div>
                       
-                      <div className="space-y-4 sm:space-y-5 relative z-10">
+                      {/* Interactive Data Modules */}
+                      <div className="space-y-3 relative z-10">
                         {[
-                          idx === 0 ? ["Motores corporativos encapsulados", "IDE de desarrollo propio", "Sistemas y diagnósticos a la medida"] :
-                          idx === 1 ? ["Conexión API a su software existente", "Portales y dashboards personalizados", "Agentes autónomos en segundo plano"] :
-                          ["Conexión a PDFs, Word y Excel locales", "Lectura estricta sin invenciones", "Eliminación del sesgo de internet"],
+                          idx === 0 ? ["Núcleo de IA Encapsulado", "Entorno de Desarrollo Aislado", "Integración de Sistemas a Medida"] :
+                          idx === 1 ? ["Conexión Segura vía API Local", "Portales Corporativos Propios", "Agentes Autónomos Internos"] :
+                          ["Indexación de Archivos Privados", "Generación Basada en Evidencia", "Cero Conexiones a Internet"],
                         ][0].map((point, pi) => (
-                          <div key={pi} className="flex items-center gap-4">
-                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${c.text.replace('text-', 'bg-')}`}></div>
-                            <span className="text-slate-300 text-sm sm:text-base font-light">{point}</span>
+                          <div key={pi} className={`flex items-center justify-between p-3 sm:p-4 rounded-xl border border-slate-800/60 bg-[#0a0a0a]/80 hover:bg-[#111] hover:border-slate-700 transition-all cursor-default group/item`}>
+                            <div className="flex items-center gap-3 sm:gap-4">
+                              <div className={`w-6 h-6 rounded flex items-center justify-center bg-black border ${c.border}`}>
+                                <span className={`text-[10px] font-mono ${c.text}`}>0{pi + 1}</span>
+                              </div>
+                              <span className="text-slate-300 text-xs sm:text-sm font-medium">{point}</span>
+                            </div>
+                            <CheckCircle2 className={`w-4 h-4 opacity-0 group-hover/item:opacity-100 transition-all duration-300 transform group-hover/item:scale-110 ${c.text}`} />
                           </div>
                         ))}
                       </div>
 
-                      <div className={`mt-8 sm:mt-12 pt-6 sm:pt-8 border-t ${c.border} flex items-center justify-between`}>
-                        <span className="text-slate-500 text-[10px] sm:text-xs uppercase tracking-[0.2em] font-medium">Validado por Arquitectura</span>
-                        <div className="flex items-center gap-2">
-                          <span className={`w-2 h-2 rounded-full ${c.text.replace('text-', 'bg-')} animate-pulse`}></span>
-                          <span className={`text-[10px] sm:text-xs font-semibold uppercase tracking-wider ${c.text}`}>Verificado</span>
+                      {/* Footer Terminal Style */}
+                      <div className={`mt-8 sm:mt-10 pt-5 border-t ${c.border} flex items-center justify-between relative z-10 bg-gradient-to-b from-transparent to-black/40 -mx-6 -mb-6 px-6 pb-6 sm:-mx-10 sm:-mb-10 sm:px-10 sm:pb-10 pt-6`}>
+                        <div className="flex items-center gap-2 font-mono">
+                          <Terminal className={`w-3.5 h-3.5 ${c.text}`} />
+                          <span className="text-slate-500 text-[10px] sm:text-[11px] uppercase tracking-widest">Status: <span className={c.text}>Verificado</span></span>
                         </div>
+                        <span className="text-slate-600 text-[10px] font-mono">ms: ~0.0</span>
                       </div>
                     </div>
                   </div>
@@ -586,7 +605,7 @@ const Home = () => {
       {/* ── FOOTER ── */}
       <footer className="bg-[#020202] border-t border-slate-800/80 relative z-10">
         {/* Mobile Footer */}
-        <div className="block lg:hidden px-6 py-12">
+        <div className="block md:hidden px-6 py-12">
           <div className="flex flex-col items-center text-center mb-10">
             <div className="flex items-center gap-2.5 mb-4">
               <img src="/logo.png" alt="ProxDeep Logo" className="h-8 w-auto object-contain" />
@@ -605,7 +624,7 @@ const Home = () => {
             <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="p-3 bg-[#0a0a0a] border border-slate-800 rounded-xl text-slate-400 hover:text-emerald-400 hover:border-emerald-900 transition-all shadow-lg">
               <Linkedin className="w-5 h-5" />
             </a>
-            <a href="https://twitter.com" target="_blank" rel="noreferrer" className="p-3 bg-[#0a0a0a] border border-slate-800 rounded-xl text-slate-400 hover:text-emerald-400 hover:border-emerald-900 transition-all shadow-lg">
+            <a href="https://x.com/Proxdeep0" target="_blank" rel="noreferrer" className="p-3 bg-[#0a0a0a] border border-slate-800 rounded-xl text-slate-400 hover:text-emerald-400 hover:border-emerald-900 transition-all shadow-lg">
               <Twitter className="w-5 h-5" />
             </a>
           </div>
@@ -639,55 +658,55 @@ const Home = () => {
         </div>
         
         {/* Desktop Footer */}
-        <div className="hidden lg:block">
-          <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-24 pb-12">
-            <div className="grid grid-cols-12 gap-12 mb-20">
+        <div className="hidden md:block">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-16 lg:pt-24 pb-8 lg:pb-12">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-12 mb-12 lg:mb-20">
               
-              <div className="col-span-4">
-                <div className="flex items-center gap-3 mb-6">
-                  <img src="/logo.png" alt="ProxDeep Logo" className="h-8 w-auto object-contain" />
-                  <span className="text-2xl font-medium text-white tracking-widest font-outfit">PROX<span className="text-blue-500">DEEP</span></span>
+              <div className="md:col-span-4 lg:col-span-4">
+                <div className="flex items-center gap-3 mb-4 lg:mb-6">
+                  <img src="/logo.png" alt="ProxDeep Logo" className="h-6 lg:h-8 w-auto object-contain" />
+                  <span className="text-xl lg:text-2xl font-medium text-white tracking-widest font-outfit">PROX<span className="text-blue-500">DEEP</span></span>
                 </div>
-                <p className="text-slate-400 text-sm leading-relaxed font-light mb-8 max-w-sm">
+                <p className="text-slate-400 text-xs lg:text-sm leading-relaxed font-light mb-6 lg:mb-8 max-w-sm">
                   Desplegamos infraestructura de Inteligencia Artificial privada para el sector corporativo.
                 </p>
-                <div className="flex gap-4">
-                  <a href="https://www.instagram.com/proxdeep?igsh=dGk5NHptNHhvMHFs" target="_blank" rel="noreferrer" className="p-3 bg-[#0a0a0a] border border-slate-800 rounded-xl text-slate-400 hover:text-emerald-400 hover:border-emerald-900 hover:bg-emerald-950/20 transition-all shadow-lg">
-                    <Instagram className="w-4 h-4" />
+                <div className="flex gap-3 lg:gap-4">
+                  <a href="https://www.instagram.com/proxdeep?igsh=dGk5NHptNHhvMHFs" target="_blank" rel="noreferrer" className="p-2 lg:p-3 bg-[#0a0a0a] border border-slate-800 rounded-xl text-slate-400 hover:text-emerald-400 hover:border-emerald-900 hover:bg-emerald-950/20 transition-all shadow-lg">
+                    <Instagram className="w-3 h-3 lg:w-4 lg:h-4" />
                   </a>
-                  <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="p-3 bg-[#0a0a0a] border border-slate-800 rounded-xl text-slate-400 hover:text-emerald-400 hover:border-emerald-900 hover:bg-emerald-950/20 transition-all shadow-lg">
-                    <Linkedin className="w-4 h-4" />
+                  <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="p-2 lg:p-3 bg-[#0a0a0a] border border-slate-800 rounded-xl text-slate-400 hover:text-emerald-400 hover:border-emerald-900 hover:bg-emerald-950/20 transition-all shadow-lg">
+                    <Linkedin className="w-3 h-3 lg:w-4 lg:h-4" />
                   </a>
-                  <a href="https://twitter.com" target="_blank" rel="noreferrer" className="p-3 bg-[#0a0a0a] border border-slate-800 rounded-xl text-slate-400 hover:text-emerald-400 hover:border-emerald-900 hover:bg-emerald-950/20 transition-all shadow-lg">
-                    <Twitter className="w-4 h-4" />
+                  <a href="https://x.com/Proxdeep0" target="_blank" rel="noreferrer" className="p-2 lg:p-3 bg-[#0a0a0a] border border-slate-800 rounded-xl text-slate-400 hover:text-emerald-400 hover:border-emerald-900 hover:bg-emerald-950/20 transition-all shadow-lg">
+                    <Twitter className="w-3 h-3 lg:w-4 lg:h-4" />
                   </a>
                 </div>
               </div>
 
-              <div className="col-span-2 col-start-6">
-                <h4 className="text-slate-200 font-semibold mb-6 text-[11px] uppercase tracking-[0.2em]">Servicio</h4>
-                <ul className="space-y-4">
-                  <li><Link to="/smls" className="text-slate-500 hover:text-emerald-400 transition-colors text-sm font-light tracking-wide">Modelos Disponibles</Link></li>
-                  <li><Link to="/register" className="text-slate-500 hover:text-emerald-400 transition-colors text-sm font-light tracking-wide">Solicitar Instalación</Link></li>
-                  <li><Link to="/login" className="text-slate-500 hover:text-emerald-400 transition-colors text-sm font-light tracking-wide">Demo de Portal</Link></li>
+              <div className="md:col-span-2 lg:col-span-2 lg:col-start-6">
+                <h4 className="text-slate-200 font-semibold mb-4 lg:mb-6 text-[10px] lg:text-[11px] uppercase tracking-[0.2em]">Servicio</h4>
+                <ul className="space-y-3 lg:space-y-4">
+                  <li><Link to="/smls" className="text-slate-500 hover:text-emerald-400 transition-colors text-xs lg:text-sm font-light tracking-wide">Modelos Disponibles</Link></li>
+                  <li><Link to="/register" className="text-slate-500 hover:text-emerald-400 transition-colors text-xs lg:text-sm font-light tracking-wide">Solicitar Instalación</Link></li>
+                  <li><Link to="/login" className="text-slate-500 hover:text-emerald-400 transition-colors text-xs lg:text-sm font-light tracking-wide">Demo de Portal</Link></li>
                 </ul>
               </div>
 
-              <div className="col-span-2">
-                <h4 className="text-slate-200 font-semibold mb-6 text-[11px] uppercase tracking-[0.2em]">Seguridad</h4>
-                <ul className="space-y-4">
-                  <li><a href="#" className="text-slate-500 hover:text-emerald-400 transition-colors text-sm font-light tracking-wide">Garantía Off-Grid</a></li>
-                  <li><a href="#" className="text-slate-500 hover:text-emerald-400 transition-colors text-sm font-light tracking-wide">Política Local</a></li>
-                  <li><a href="#" className="text-slate-500 hover:text-emerald-400 transition-colors text-sm font-light tracking-wide">Privacidad IP</a></li>
+              <div className="md:col-span-2 lg:col-span-2">
+                <h4 className="text-slate-200 font-semibold mb-4 lg:mb-6 text-[10px] lg:text-[11px] uppercase tracking-[0.2em]">Seguridad</h4>
+                <ul className="space-y-3 lg:space-y-4">
+                  <li><a href="#" className="text-slate-500 hover:text-emerald-400 transition-colors text-xs lg:text-sm font-light tracking-wide">Garantía Off-Grid</a></li>
+                  <li><a href="#" className="text-slate-500 hover:text-emerald-400 transition-colors text-xs lg:text-sm font-light tracking-wide">Política Local</a></li>
+                  <li><a href="#" className="text-slate-500 hover:text-emerald-400 transition-colors text-xs lg:text-sm font-light tracking-wide">Privacidad IP</a></li>
                 </ul>
               </div>
 
-              <div className="col-span-3">
-                <h4 className="text-slate-200 font-semibold mb-6 text-[11px] uppercase tracking-[0.2em]">Red de Contacto</h4>
-                <ul className="space-y-5">
-                  <li><a href="mailto:asesoria@proxdeep.com" className="text-slate-500 hover:text-white transition-colors text-sm font-light flex items-center gap-3 tracking-wide"><Mail className="h-4 w-4 text-emerald-500/70" /> asesoria@proxdeep.com</a></li>
-                  <li><a href="tel:+573013137911" className="text-slate-500 hover:text-white transition-colors text-sm font-light flex items-center gap-3 tracking-wide"><Phone className="h-4 w-4 text-emerald-500/70" /> +57 301 313 7911</a></li>
-                  <li><span className="text-slate-500 transition-colors text-sm font-light flex items-center gap-3 tracking-wide"><Building2 className="h-4 w-4 text-slate-700" /> Cobertura Global (Remota)</span></li>
+              <div className="md:col-span-4 lg:col-span-3">
+                <h4 className="text-slate-200 font-semibold mb-4 lg:mb-6 text-[10px] lg:text-[11px] uppercase tracking-[0.2em]">Red de Contacto</h4>
+                <ul className="space-y-4 lg:space-y-5">
+                  <li><a href="mailto:asesoria@proxdeep.com" className="text-slate-500 hover:text-white transition-colors text-xs lg:text-sm font-light flex items-center gap-2 lg:gap-3 tracking-wide"><Mail className="h-3 w-3 lg:h-4 lg:w-4 text-emerald-500/70" /> asesoria@proxdeep.com</a></li>
+                  <li><a href="tel:+573013137911" className="text-slate-500 hover:text-white transition-colors text-xs lg:text-sm font-light flex items-center gap-2 lg:gap-3 tracking-wide"><Phone className="h-3 w-3 lg:h-4 lg:w-4 text-emerald-500/70" /> +57 301 313 7911</a></li>
+                  <li><span className="text-slate-500 transition-colors text-xs lg:text-sm font-light flex items-center gap-2 lg:gap-3 tracking-wide"><Building2 className="h-3 w-3 lg:h-4 lg:w-4 text-slate-700" /> Cobertura Global (Remota)</span></li>
                 </ul>
               </div>
 
